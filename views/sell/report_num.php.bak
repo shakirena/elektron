@@ -1,0 +1,248 @@
+<?php
+
+use yii\helpers\Html;
+//use yii\grid\GridView;
+use yii\bootstrap\Modal;
+use yii\helpers\Url;
+use yii\widgets\Pjax;
+use yii\helpers\ArrayHelper;
+use kartik\date\DatePicker;
+use kartik\grid\GridView;
+use app\models\Client;
+use app\models\TypeProduct;
+use app\models\Users;
+use app\models\Store;
+use kartik\select2\Select2;
+
+/* @var $this yii\web\View */
+/* @var $searchModel app\models\ArrivalSearch */
+/* @var $dataProvider yii\data\ActiveDataProvider */
+
+$this->title = 'Arrivals';
+//$this->params['breadcrumbs'][] = $this->title;
+?>
+<div class="arrival-index">
+
+
+
+
+    <?php
+    Modal::begin([
+        // 'header' => '<h4>Find device</h4>',
+        'options' => [
+            'id' => 'postponed-modal',
+            'tabindex' => true,
+
+
+        ],
+        'size' => 'modal-rena-lg',
+
+
+
+    ]);
+
+    echo '<div id="postponedContent"></div>';
+
+    Modal::end();
+
+    ?>
+    <br> <br>
+    <?php $clientList = ArrayHelper::map(Client::find()->all(), 'id_client', 'fio'); ?>
+    <?php $user = ArrayHelper::map(Users::find()->all(), 'id_user', 'fio'); ?>
+    <?php $typeList = ArrayHelper::map(TypeProduct::find()->all(), 'id', 'name'); ?>
+    <?php $storeList = ArrayHelper::map(Store::find()->all(), 'id', 'name'); $i=0;$num=0;?>
+    <?= GridView::widget([
+        'dataProvider' => $dataProvider,
+        'filterModel' => $searchModel,
+
+        'tableOptions' => [
+
+            'class' => 'table-rena table-rena2',
+            'style' => 'font-size:9pt'
+
+        ],
+
+        //  'pjax'=>true,
+        'striped'=>true,
+        'hover'=>true,
+        'panel'=>['type'=>'primary'],
+        'showPageSummary' => true,
+        'rowOptions' =>
+            function ($dataProvider, $key, $index, $grid) {
+                return ['id' => $dataProvider['id']
+                ];
+            },
+        'showFooter' => true,
+        'footerRowOptions' => ['style' => 'font-weight:bold;text-decoration:underline;color:red;'],
+
+        'columns' => [
+
+         //   ['class'=>'kartik\grid\SerialColumn'],
+            
+
+            
+
+            [
+                'attribute' => 'datetime',
+                'label' => 'Gəbul tarixi',
+                'format'=>'raw',
+                'value' => 'datetime',
+                'width' => '150px',
+
+                'filter' =>DatePicker::widget([
+                    //,
+
+                    'model' => $searchModel,
+                    'attribute' => 'date_start',
+                    'value' => date('Y-m-d'),
+                    //'options' => ['placeholder' => 'Select issue date ...'],
+                    'type' => DatePicker::TYPE_RANGE,
+                    'attribute2' => 'date_end',
+                    'value2' => date('Y-m-d'),
+                    'pluginOptions' => [
+                        'format' => 'yyyy-mm-dd',
+                        'autoClose' => true
+                        // 'todayHighlight' => false
+                    ]
+                ]),
+
+                // 'group'=>true,
+
+            ],
+            [
+                'attribute' =>'name_product',
+                'value' => 'idProduct.name',
+                'format'=>'raw',
+                'pageSummary' => 'Yekun',
+                'pageSummaryOptions' => ['class' => 'text-right text-danger'],
+                'width' => '550px',
+
+            ],
+			[
+				'attribute'=>'barcode',
+				'value'=>'nameBarcode'
+			],
+
+            [
+                'attribute' => 'quantity',
+                'label' =>'Miqdar',
+                'format'=>'raw',
+				'value' => function ($model, $index, $widget) {
+					
+					  return round($model->quantity,2);
+					},
+                'width' =>'100px',
+                'hAlign' => 'right',
+                'footer' =>  round($searchModel->getSumArrival($dataProvider->query,'quantity'),2)
+
+            ],
+			[ 
+                'label'=> 'Gəliş qiym',
+                'value' => 'priceAr',
+               
+                'width' => '100px',
+            
+            ],
+			[ 
+                'label'=> 'Cəmi <br>  Gəliş qiym',
+                'value' => 'SumPriceArRest',
+                'format'=>'raw',
+                'width' => '100px',
+				'encodeLabel' => false,
+				'footer' =>  $searchModel->getSumPriceAr($dataProvider->query)
+            
+            ],
+            [
+                'attribute' =>  'price',
+                'label' => 'Satış <br> qiyməti',
+                'format'=>'raw',
+                'value' => 'price',
+                'width' =>'100px',
+                'encodeLabel' => false,
+
+                'hAlign' => 'right',
+				
+            ],
+            [
+                'attribute' => 'sum',
+				'value' => function ($model, $index, $widget) {
+					
+					  return round($model->sum,2);
+					},
+               
+                'width' =>'100px',
+                'hAlign' => 'right',
+                'footer' =>  round($searchModel->getSumArrival($dataProvider->query,'sum'),2)
+            ],
+			 [
+                'attribute' =>'rest',
+                'label'=>'Anbarda <br> sayı',
+                
+				'value' => function ($model, $index, $widget) {
+					$rest=round($model->getResta(),2);
+					  return $rest;
+					},
+                'format'=>'raw',
+                'width' =>'30px',
+                'encodeLabel' => false,
+              //  'footer' => $searchModel->getSumResta($dataProvider->query)
+               // 'pageSummary' => true,
+            ],
+        
+            [
+                'attribute' => 'earnings',
+                'label'=>'Mənfəət',
+				'value' =>
+							function ($model, $index, $widget)
+							{
+									return round ($model->earnings,2);
+							},
+				
+                'width' =>'100px',
+                'hAlign' => 'right',
+				'filter'=>false,
+                'footer' => round($searchModel->getSumArrival($dataProvider->query,'earnings'),2)
+            ],
+			
+           
+     
+
+            /*[
+                'label' => 'Qalıq borc',
+				'value'=> 'restBorc',
+                'width' => '100px',
+                'footer' =>  round($searchModel->getSumBorc($dataProvider->query),2)
+
+            ], */
+          
+			 [   'attribute' => 'type',
+                'label'=> 'Mal grupu',
+                'value' => 'idProduct.idType.name',
+                'filter' => $typeList,
+                'filterWidgetOptions' =>[
+                    'pluginOptions'=>['allowClear'=>true]
+                ],
+                'filterType' =>GridView::FILTER_SELECT2,
+                'width' => '400px',
+                'filterInputOptions' =>['placeholder'=>'Any type']
+            ],
+		
+			[ 
+                'label'=> 'Şirketi',
+                'value' => 'getContrValue',
+               
+                'width' => '100px',
+            
+            ],
+           /* [   'attribute' => 'type',
+                'value' => 'idType'
+            ],*/
+
+
+            // 'received',
+
+
+        ],
+    ]); ?>
+
+  </div>

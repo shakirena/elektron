@@ -1,0 +1,495 @@
+<?php
+
+namespace app\models;
+
+use Yii;
+use yii\bootstrap\Html;
+
+/**
+ * This is the model class for table "sell".
+ *
+ * @property integer $id
+ * @property integer $id_user
+ * @property integer $id_product
+ * @property double $quantity
+ * @property double $price
+ * @property double $price_ar
+ * @property double $discount
+ * @property double $sum
+ * @property integer $sold
+ * @property string $datetime
+ * @property integer $id_client
+ * @property integer $number
+ * @property double $earnings
+ * @property integer $flag
+ * @property double $returnp
+ * @property string $sn
+ * @property double $debt
+ *
+ * @property Client $idClient
+ * @property Users $idUser
+ * @property Product $idProduct
+ */
+class Sell2 extends \yii\db\ActiveRecord
+{
+    /**
+     * @inheritdoc
+     */
+    public static function tableName()
+    {
+        return 'sell2';
+    }
+    public $flag=0;
+    public $name_product;
+    public $name_client;
+    public $quantity1;
+    public $postponed1;
+    public $status;
+    /**
+     * @inheritdoc
+     */
+    public function rules()
+    {
+        return [
+            [['id_user', 'id_product',  'datetime'], 'required'],
+            [['id_user','user_issue', 'id_product', 'sold', 'id_client', 'number', 'flag','id_store'], 'integer'],
+            [['quantity', 'price','usd', 'price_ar', 'discount', 'sum', 'earnings', 'returnp', 'debt'], 'number'],
+            [['datetime','date_issue','postponed'], 'safe'],
+            [['sn'], 'string', 'max' => 100],
+            [['id_client'], 'exist', 'skipOnError' => true, 'targetClass' => Client::className(), 'targetAttribute' => ['id_client' => 'id_client']],
+            [['id_user'], 'exist', 'skipOnError' => true, 'targetClass' => Users::className(), 'targetAttribute' => ['id_user' => 'id_user']],
+            [['user_issue'], 'exist', 'skipOnError' => true, 'targetClass' => Users::className(), 'targetAttribute' => ['user_issue' => 'id_user']],
+            [['id_product'], 'exist', 'skipOnError' => true, 'targetClass' => Product::className(), 'targetAttribute' => ['id_product' => 'id']],
+          //  [['id_master'], 'exist', 'skipOnError' => true, 'targetClass' => Master::className(), 'targetAttribute' => ['id_master' => 'id']],
+
+
+        ];
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function attributeLabels()
+    {
+        return [
+            'id' => 'ID',
+            'id_user' => 'Id User',
+            'id_product' => 'Id Product',
+            'quantity' => 'Quantity',
+            'price' => 'Price',
+            'price_ar' => 'Price Ar',
+            'discount' => 'Discount',
+            'sum' => 'Cəmi',
+            'sold' => 'Sold',
+            'datetime' => 'Datetime',
+            'id_client' => 'Id Client',
+            'number' => 'Number',
+            'earnings' => 'Earnings',
+            'flag' => 'Flag',
+            'returnp' => 'Returnp',
+            'sn' => 'Qeyd',
+            'debt' => 'Debt',
+            'id_store'=> 'Store',
+            'name_product'=> 'Malın adı',
+            'date_issue'=> 'Təslim tarixi',
+            'type' =>'type',
+            'sum_master' => 'Usta pulu',
+            'status' => 'Status',
+            'barcode' => 'Barkodu'
+        ];
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getIdClient()
+    {
+        return $this->hasOne(Client::className(), ['id_client' => 'id_client']);
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getIdUser()
+    {
+        return $this->hasOne(Users::className(), ['id_user' => 'id_user']);
+    }
+    public function getUserIssue()
+    {
+        return $this->hasOne(Users::className(), ['id_user' => 'user_issue']);
+    }
+
+  /*  public function getIdMaster()
+    {
+        return $this->hasOne(Master::className(), ['id' => 'id_master']);
+    }*/
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getIdProduct()
+    {
+        return $this->hasOne(Product::className(), ['id' => 'id_product']);
+    }
+
+    public function getNameBarcode()
+    {
+        $bar='';
+        foreach (Barcodep::find()->where(["id_product" =>$this->getIdProduct()->one()->id])->all() as $barcode)
+        {
+            $bar.=$barcode->name.', ';
+        }
+        $bar=rtrim($bar,',');
+        return $bar;
+    }
+    public function getType()
+    {
+        $type=$this->getIdType()->one()->name;
+        $parent=TypeProduct::find()->where(["id" =>  $this->getIdType()->one()->id_parent])->one();
+        $type=$parent->name."/".$type;
+
+        $parent=TypeProduct::find()->where(["id" => $parent->id_parent])->one();
+        $type=$parent->name."/".$type;
+
+        $parent=TypeProduct::find()->where(["id" => $parent->id_parent])->one();
+        $type=$parent->name."/".$type;
+        return $type;
+    }
+    public function getColor()
+    {
+
+        return 'green';
+    }
+    public function getIdStore()
+    {
+        return $this->hasOne(Store::className(), ['id' => 'id_store']);
+    }
+    public function getIdType()
+    {
+        return $this->getIdProduct()->one()->id_type;
+
+    }
+    public function getGetType()
+    {
+        $parent=TypeProduct::find()->where(["id" =>  $this->getIdType()])->one();
+        if ($parent) $name2=$parent->name;
+
+        $parent=TypeProduct::find()->where(["id" =>  $parent->id_parent])->one();
+        if ($parent) $name1=$parent->name."/";
+        $parent=TypeProduct::find()->where(["id" =>  $parent->id_parent])->one();
+        if ($parent) $name1=$parent->name."/";
+
+        $parent=TypeProduct::find()->where(["id" =>  $parent->id_parent])->one();
+        if ($parent) $name1=$parent->name."/";
+
+        $parent=TypeProduct::find()->where(["id" =>  $parent->id_parent])->one();
+        if ($parent) $name1=$parent->name."/";
+
+
+        $name=$name1.$name2;
+
+        $product="(";
+        foreach(Sell::find()->where(['number'=>$this->number, 'returnp'=>0])
+                    ->all() as $sell)
+        {
+            if ($sell->postponed>0) $color='#E5C609'; else $color="";
+            if ($sell->quantity>1)
+                $product.="<span style='color:$color'>".$sell->getIdProduct()->one()->name. " ($sell->quantity əd) </span>".",";
+            else  $product.="<span style='color:$color'>".$sell->getIdProduct()->one()->name."</span>,";
+        }
+        $product=rtrim($product,',');
+        $product.=")";
+        $name.=$product;
+        return $name;
+    }
+
+    public function getGetType1()
+    {
+        $parent=TypeProduct::find()->where(["id" =>  $this->getIdType()])->one();
+        if ($parent) $name2=$parent->name;
+
+        $parent=TypeProduct::find()->where(["id" =>  $parent->id_parent])->one();
+        if ($parent) $name1=$parent->name."/";
+        $parent=TypeProduct::find()->where(["id" =>  $parent->id_parent])->one();
+        if ($parent) $name1=$parent->name."/";
+
+        $parent=TypeProduct::find()->where(["id" =>  $parent->id_parent])->one();
+        if ($parent) $name1=$parent->name."/";
+
+        $parent=TypeProduct::find()->where(["id" =>  $parent->id_parent])->one();
+        if ($parent) $name1=$parent->name."/";
+
+
+        $name=$name1.$name2;
+
+        $product="(";
+        foreach(Sell::find()->where(['number'=>$this->number,'returnp'=>0])
+                    ->all() as $sell)
+        {
+
+            if ($sell->quantity>1)
+                $product.=$sell->getIdProduct()->one()->name. " ($sell->quantity əd)".",";
+            else  $product.=$sell->getIdProduct()->one()->name.",";
+        }
+        $product=rtrim($product,',');
+        $product.=")";
+        $name.=$product;
+        return $name;
+    }
+
+    public function getTest()
+    {
+        $balance=Balance::find()->select("sum(sum) as sum")->where(["number"=>$this->number])->andWhere("balance.id_type=1")->one()->sum;
+        // $balance=Dclient::find()->where(["number"=>$this->number])->one()->debt;
+        return $balance;
+    }
+    public function getTest1()
+    {
+        $balance=Balance::find()->select("sum(sum) as sum")->where(["number"=>$this->number])->andWhere("balance.id_type=2 or balance.id_type=3")->one()->sum;
+        // $balance=Dclient::find()->where(["number"=>$this->number])->one()->debt;
+        return $balance;
+    }
+    public function getTest2()
+    {
+        $balance=Dclient::find()->where(["number"=>$this->number])->one()->debt;
+        // $balance=Dclient::find()->where(["number"=>$this->number])->one()->debt;
+        if ($balance) return $balance;
+       else return "0";
+    }
+
+    public function getGetNumber()
+    {
+
+
+        return $this->number."   ".Html::button('<i class="glyphicon glyphicon-ok"></i>OK',["onclick"=> "cancel($this->number)"]);
+    }
+	public function getGetNumberPost()
+    {
+
+
+        return $this->number."   ".Html::button('<i class="glyphicon glyphicon-ok"></i>OK',["onclick"=> "cancelPos($this->number)"]);
+    }
+	public function getGetNumberPostMobile()
+    {
+
+
+        return $this->number."   ".Html::button('<i class="glyphicon glyphicon-ok"></i>OK',["onclick"=> "cancelPosMobile($this->number)"]);
+    }
+    public function getSearch($number)
+    {
+        $query = Sell::find()->select("sum(quantity) as quantity1,sum(postponed) as postponed1")
+            ->andWhere(['number' => $this->number,'returnp'=>0])->one();
+        if ($query->quantity1==$query->postponed1) return 1;
+        else return 0;
+
+    }
+    public function getStatus($model)
+    {
+        $query = Sell::find()->select("sum(quantity) as quantity1,sum(postponed) as postponed1")
+            ->joinWith('idProduct.idType')->joinWith('idClient')
+            ->andWhere($model->query->where)->andWhere(['number' => $this->number,'returnp'=>0])->one();
+        $sum=$query->quantity1-$query->postponed1;
+        if ($sum==$query->quantity1)
+        {   if (Dclient::find()->where(['number'=> $this->number])->one()->debt>0)  $color='red';
+        else $color='green';}
+        else  if ($sum>0) $color='yellow';
+
+        return "<span class='badge' style='background-color: $color'>&nbsp&nbsp $sum</span>";
+        // return $sum;
+        // if  ($this->getGetPostponed()==)
+        // return "drf" ;
+    }
+    public function getSumArrival($model,$column){
+        $sum=0;
+        $query =  Sell::find()->select("sum(quantity) as quantity,sum(sum) as sum,sum(earnings) as earnings")
+            ->joinWith('idProduct.idType')
+            ->joinWith('idClient')->joinWith(['idProduct.barcodes'])
+            ->andWhere(['returnp'=>0])->andWhere($model->where)->one();
+
+
+        return $query->$column;
+    }
+    public function getSumBalance($model){
+        $sum=0;
+        foreach(Sell::find()->joinWith('idProduct.idType') ->joinWith('idClient')->joinWith(['idProduct.barcodes'])
+                    ->andWhere(['returnp'=>0])->andWhere($model->where)->groupBy("number")->all() as $sell){
+            $query =  Balance::find()->select("sum(sum) as sum")
+                ->where(["number" => $sell->number])->andWhere(" balance.id_type=2 or balance.id_type=3")->one();
+
+            $sum=$sum+ $query->sum;
+        }
+
+
+        return $sum;
+    }
+
+    public function getSumBorc($model){
+        $sum=0;
+       foreach(Sell::find()->joinWith('idProduct.idType') ->joinWith('idClient')->joinWith(['idProduct.barcodes'])
+                    ->andWhere(['returnp'=>0])->andWhere($model->where)->groupBy("number")->all() as $sell){
+            $query =  Dclient::find()->where(["number" => $sell->number])->one();
+            if ($query->debt)
+            $sum=$sum+ $query->debt;
+        }
+
+        return $sum;
+    }
+    public function getBehBalance($model){
+        $sum=0;
+        foreach(Sell::find()->joinWith('idProduct.idType') ->joinWith('idClient')->joinWith(['idProduct.barcodes'])
+                    ->andWhere(['returnp'=>0]) ->andWhere($model->where)->groupBy("number")->all() as $sell){
+            $query =  Balance::find()->select("sum(sum) as sum")
+                ->where(["number" => $sell->number])->andWhere("balance.id_type=1")->one();
+
+            $sum=$sum+ $query->sum;
+        }
+
+
+        return $sum;
+    }
+	  public function getPriceSell()
+    {
+        $arrival=Arrival::find()
+            ->select('pricesell')
+            ->where(['id_product' => $this->id_product])
+            ->orderBy([
+                'id' => SORT_DESC
+            ])
+            ->one();
+       return $arrival->pricesell;
+    }
+	  public function getPriceOpt()
+    {
+        $arrival=Arrival::find()
+            ->select('trade_price,pricesell')
+            ->where(['id_product' => $this->id_product])
+            ->orderBy([
+                'id' => SORT_DESC
+            ])
+            ->one();
+        if ($arrival->trade_price) $pricesell=$arrival->trade_price;
+        else $pricesell=0;
+		
+		if ($this->price==$arrival->trade_price) $new_price=$arrival->pricesell;
+		else  $new_price=$arrival->trade_price;
+        return  Html::button($pricesell,['class' => 'btn','onClick' => "editPrice2($this->id,$new_price)"]);
+    }
+    public function getGetNumberSell()
+    {
+
+
+        return $this->number."   ".Html::button("Vozvrat",["onclick"=>"vozvratSelect($this->number)"]).Html::button("Print",["onclick"=>"printChek($this->number)"]);    }
+    public function getRest($id){
+        return Arrival::find()->select("sum(rest) as sum")->where(["id_product"=>$this->id_product,'id_store'=>$id])->one()->sum;
+
+    }
+    public function getCancel(){
+        return Html::button('<i class="glyphicon glyphicon-remove"></i>',["onclick"=> "cancel($this->number)"]);
+
+    }
+
+    public function getPostponedValue()
+    {
+        return $this->quantity1-$this->postponed1;
+    }
+
+
+
+    public function getGetPostponed()
+    {
+
+        $sell=Sell::find()->select("sum(postponed) as postponed")->andWhere(['returnp'=>0])->andWhere(["id_product" => $this->id_product])
+            ->groupBy("id_product")->one();
+        return $sell->postponed;
+    }
+    public function getSumPostponed1($model)
+    {
+        $query = Sell::find()->select("sum(quantity) as quantity1,sum(postponed) as postponed1")
+            ->joinWith('idProduct.idType')->joinWith('idClient')->joinWith(['idProduct.barcodes'])
+            ->andWhere(['returnp'=>0])
+            ->andWhere($model->where)->one();
+        $sum=$query->quantity1-$query->postponed1;
+
+        return $sum;
+    }
+    public function getSumCount()
+    {
+        return round(Arrival::find()->select('sum(rest) as rest')
+            ->where(['id_product'=> $this->id_product])->one()->rest,2);
+
+    }
+    public function getPriceTop(){
+        return Arrival::find()->where(['id_product' =>$this->id_product])->orderBy("id DESC")->one()->price_top;
+    }
+
+    public function getPack(){
+        return Arrival::find()->where(['id_product' =>$this->id_product])->orderBy("id DESC")->one()->pack;
+    }
+    public function getValuePriceAr()
+    {
+        return Arrival::find()->select('price')
+            ->where(['id_product'=> $this->id_product])->andWhere("transfer=0")->orderBy("id DESC")->one()->price;
+
+    }
+    public function getValuePriceArUsd()
+    {
+        return Arrival::find()->select('usd')
+            ->where(['id_product'=> $this->id_product])->orderBy("id DESC")->one()->usd;
+
+    }
+    public function getProcMənfəət()
+    {
+       return round( $this->earnings*100/ $this->sum,2);
+}
+    public function getSumPostponed($model)
+    {
+        $sum=0;
+        $query = Arrival::find()->select('id_product,id_store')
+            ->joinWith('idProduct.idType')
+            ->where($model->where)
+            ->groupBy("id_product")->all();
+        $i=0;
+
+        foreach($query as $model) {
+//echo  $model->id_product."<br>";
+            $sell=Sell::find()->select("sum(postponed) as postponed")->where(["id_product" => $model->id_product,'returnp'=>0])
+                ->groupBy("id_product")->one()->postponed;
+            //print_r($sell);
+            $sum=$sum+$sell;
+            $test[$i]=$sell;
+            $i++;
+            // echo $sell;
+        }
+        return $sum;
+    }
+
+    public function getSumRest($model,$column){
+        $sum=0;
+        $query = Arrival::find()->select('sum(rest) as rest,sum(price*rest) as sum,sum(usd*rest) as usd,id_product,id_store')
+            ->joinWith('idProduct.idType')
+            ->where($model->where)->one();
+        foreach($model as $model1){
+            //print_r($model1->query);
+            // echo "<br>";
+            // $sum=$sum+
+        }
+
+        return $query->$column;
+    }
+	
+	 public function getNameProduct()
+    {
+		$product=Product::findOne(['id'=>$this->id_product])->name;
+		if (Image::find()->where(["id_tre"=>$this->id_product])->one())
+		 return  Html::a("$product",'#', [  'onclick' => "photo($this->id_product)"]) ;
+	 else return $product;
+       
+    }
+
+	public function getBoxing()
+	{
+		$boxing=Product::find()->where(["id"=>$this->id_product])->one()->boxing;
+		
+		return $boxing;
+		
+	}
+}

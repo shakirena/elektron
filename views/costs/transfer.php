@@ -1,0 +1,78 @@
+<?php
+
+use yii\helpers\Html;
+use yii\widgets\ActiveForm;
+use app\models\Kassa;
+use yii\helpers\ArrayHelper;
+use kartik\select2\Select2;
+/* @var $this yii\web\View */
+/* @var $model app\models\Finance */
+/* @var $form yii\widgets\ActiveForm */
+?>
+
+<div class="finance-form row" style="margin:10px">
+	<div class="col-xs-6">
+		<?php $form = ActiveForm::begin(); ?>
+
+		<?= $form->field($model, 'from_kassa')->widget(Select2::className(),[
+					'data' =>  ArrayHelper::map(Kassa::find()->all(), 'id', 'name'),
+					'options' => [
+						'placeholder' => 'Seçin',
+						"id" => "selectKassa"
+
+
+					],
+
+
+				]);
+				?>
+		<?php echo "Balans:<span id='sum'></span> AZN"; ?>
+		<br/><br/>
+		<?= $form->field($model, 'id_kassa')->widget(Select2::className(),[
+					'data' =>  ArrayHelper::map(Kassa::find()->all(), 'id', 'name'),
+					'options' => [
+						'placeholder' => 'Seçin',
+
+
+					],
+
+
+				]);
+				?>
+
+		<?= $form->field($model, 'sum')->textInput() ?>
+
+		<?= $form->field($model, 'note')->textarea(['rows' => 6]) ?>
+
+	 
+
+		<div class="form-group">
+			<?= Html::submitButton('Create' , ['class' => $model->isNewRecord ? 'btn btn-success' : 'btn btn-primary']) ?>
+		</div>
+
+		<?php ActiveForm::end(); ?>
+	</div>
+	<div class="col-xs-6" style="padding-left:100px">
+		<?php
+			$sum = 0;
+			/*foreach ($kassa as $model)
+			{
+				$sum = $sum + $model->sum;
+			?>
+				<div><b><?=$model->note?></b>: <?=round($model->sum,2)?> AZN</div>
+				---------------------------------------------------------<br/>
+				<?php }*/
+				
+				foreach ($kassa as $model)
+				{
+					$sum = $sum + $model->kassaSum($model->id);
+				?>
+				<div><b><?=$model->name?></b>: <?=$model->kassaSum($model->id)?> AZN</div><br>
+				<?php
+				}
+				
+				?>	
+
+		<div><b>Yekun:  <?= round($sum,2)?> AZN</b></div>
+	</div>
+</div>

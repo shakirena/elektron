@@ -1,0 +1,393 @@
+<?php
+
+namespace app\models;
+
+use Yii;
+use yii\bootstrap\Html;
+use yii\helpers\Url;
+/**
+ * This is the model class for table "arrival".
+ *
+ * @property integer $id
+ * @property integer $id_user
+ * @property integer $id_product
+ * @property double $quantity
+ * @property double $price
+ * @property double $usd
+ * @property double $pricesell
+ * @property double $sum
+ * @property integer $id_store
+ * @property integer $received
+ * @property string $datetime
+ * @property integer $id_contr
+ * @property integer $number
+ * @property integer $discount
+ * @property integer $returnp
+ * @property integer $rest
+ *
+ * @property Users $idUser
+ * @property Store $idStore
+ * @property Contractor $idContr
+ * @property Product $idProduct
+ */
+class Arrival extends \yii\db\ActiveRecord
+{
+    public $sumsell;
+    public $flag;
+    public $sum_azn;
+    public $sum_usd;
+    public $name_product;
+    public $DIF=0;
+    /**
+     * @inheritdoc
+     */
+    public static function tableName()
+    {
+        return 'arrival';
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function rules()
+    {
+        return [
+            [['id_user', 'id_product'], 'required'],
+            [['id_user', 'id_product', 'id_store', 'received', 'id_contr', 'number', 'returnp','postponed','transfer'], 'integer'],
+            [['quantity', 'price', 'usd', 'trade_price', 'pricesell', 'sum', 'rest', 'discount', 'pricesell_min'], 'number'],
+            [['datetime','polka'], 'safe'],
+            [['id_user'], 'exist', 'skipOnError' => true, 'targetClass' => Users::className(), 'targetAttribute' => ['id_user' => 'id_user']],
+            [['id_store'], 'exist', 'skipOnError' => true, 'targetClass' => Store::className(), 'targetAttribute' => ['id_store' => 'id']],
+            [['id_contr'], 'exist', 'skipOnError' => true, 'targetClass' => Contractor::className(), 'targetAttribute' => ['id_contr' => 'id']],
+            [['id_product'], 'exist', 'skipOnError' => true, 'targetClass' => Product::className(), 'targetAttribute' => ['id_product' => 'id']],
+        ];
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function attributeLabels()
+    {
+        return [
+            'id' => 'ID',
+            'id_user' => 'Id User',
+            'id_product' => 'Malın adı',
+            'quantity' => 'Quantity',
+            'price' => 'Alış qiyməti(azn)',
+            'usd' => 'Aləş qiyməti(usd)',
+            'pricesell' => 'Satış qiyməti ',
+			'pricesell_min' => 'Minimum </br> satış </br> qiyməti',
+			'trade_price' => 'Topdan </br> satış </br>qiyməti',
+            'sum' => "Cəmi </br> qiyməti",
+            'id_store' => 'Id Store',
+            'received' => 'Received',
+            'datetime' => 'Datetime',
+            'id_contr' => 'Şirkət',
+            'number' => 'Number',
+            'discount' => 'Discount',
+            'returnp' => 'Returnp',
+            'rest' => 'Say',
+            'type' =>'Type',
+            'type_name' =>'Type',
+             'name_product'=> 'Malın adı',
+			 'price_top'=>'Ədədin </br> qyiməti',
+			 'pack'=>'Qutuda </br> ədəd sayi'
+        ];
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getIdUser()
+    {
+        return $this->hasOne(Users::className(), ['id_user' => 'id_user']);
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getIdStore()
+    {
+        return $this->hasOne(Store::className(), ['id' => 'id_store']);
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getIdContr()
+    {
+        return $this->hasOne(Contractor::className(), ['id' => 'id_contr']);
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getIdProduct()
+    {
+        return $this->hasOne(Product::className(), ['id' => 'id_product']);
+    }
+    public function getProduct()
+    {
+        return   Product::findOne(['id'=>$this->id_product]);
+    }
+	 public function getNameProduct()
+    {
+		$product=Product::findOne(['id'=>$this->id_product])->name;
+		if (Image::find()->where(["id_tre"=>$this->id_product])->one())
+		 return  Html::a("$product",'#', [  'onclick' => "photo($this->id_product)"]) ;
+	 else return $product;
+       
+    }
+    public function getType()
+    {
+        $product=Product::findOne(['id'=>$this->id_product]);
+        $type=TypeProduct::findOne(['id'=>$product->id_type]);
+        return $type;
+    }
+    public function getNumberString()
+    {
+        return 'Inbound (goods) delivery note №'.$this->number;
+    }
+	  public function getPriceOpt()
+    {
+        $arrival=Arrival::find()
+            ->select('trade_price,pricesell')
+            ->where(['id_product' => $this->id_product])
+            ->orderBy([
+                'id' => SORT_DESC
+            ])
+            ->one();
+        if ($arrival->trade_price) $pricesell=$arrival->trade_price;
+        else $pricesell=0;
+		
+		
+        return $pricesell;
+    }
+    public function getTest()
+    {
+        return $this->idStore->name;
+    }
+
+    public function getNameRowArrival()
+    {
+        return "Приходная накладная №".$this->number." от ".$this->datetime.", ".$this->idContr->name;
+    }
+
+    public function getNameRowSell($id)
+    {
+        $client=Client::find()->where(["id_client" => $id])->one()->fio;
+        return "Расходная накладная №".$this->number." от ".$this->datetime.", ".$client;
+    }
+
+    public function getDifferent($model)
+    {
+       // $this->DIF=$this->DIF-$this->quantity;
+     //  echo $this->DIF."<br>"  ;
+      //  foreach($)
+        return  3;
+    }
+    public function getIdType()
+    {
+        return $this->getIdProduct()->one()->id_type;
+
+    }
+    public function getNameType()
+    {
+        $id=$this->getIdProduct()->one()->id_type;
+        $type=TypeProduct::findOne(['id'=>$id]);
+        return $type->name;
+
+    }
+	public function getGetPolka()
+    {
+        return Arrival::find()->where(['id_product' => $this->id_product])->orderBy("id DESC") ->one()->polka;
+
+    }
+   
+
+    public function getGetPostponed()
+    {
+
+        $sell=Sell::find()->select("sum(postponed) as postponed")->where(["id_product" => $this->id_product,'returnp'=>0])
+            ->groupBy("id_product")->one();
+        return $sell->postponed;
+    }
+  public function getNameBarcode()
+    {
+        $bar='';
+        foreach (Barcodep::find()->where(["id_product" =>$this->getIdProduct()->one()->id])->all() as $barcode)
+        {
+            $bar.=$barcode->name.', ';
+        }
+        $bar=rtrim($bar,", ");
+        return $bar;
+    }
+	 
+    public function getSumPostponed($model)
+    {
+        $sum=0;
+        $query = Arrival::find()->select('id_product,id_store')
+            ->joinWith('idProduct.idType')
+            ->where($model->where)->groupBy("id_product")->all();
+$i=0;
+
+        foreach($query as $model) {
+//echo  $model->id_product."<br>";
+            $sell=Sell::find()->select("sum(postponed) as postponed")->where(["id_product" => $model->id_product,'returnp'=>0])
+                ->groupBy("id_product")->one()->postponed;
+            //print_r($sell);
+           $sum=$sum+$sell;
+           $test[$i]=$sell;
+           $i++;
+           // echo $sell;
+        }
+        return $sum;
+    }
+    public function getSumRest($model,$column){
+        $sum=0;
+        $query = Arrival::find()->select('sum(rest) as rest,sum(price*rest) as sum,sum(usd*rest) as usd,arrival.id_product,id_store,sum(pricesell*rest) as pricesell')
+           // ->joinWith('idProduct.idType')
+			//->join('JOIN', 'bar_code','bar_code.id_product=arrival.id_product')
+			//->leftJoin( 'bar_code','bar_code.id_product=arrival.id_product')
+           // ->where($model->where)
+				
+			->orderBy("arrival.id DESC")->one();
+		
+        return round($query->$column,2);
+    }
+	
+	  public function getRestVal(){
+        
+        $query = Arrival::find()->select('sum(rest) as rest') ->where(['id_product' => $this->id_product, 'postponed'=>0, 'received'=1])->one();
+		
+        return round($query->rest,2);
+    }
+	public function getPriceSumArrival($model,$column)
+	{
+		 $sum=0;
+        $query = Arrival::find()->select('sum(rest) as rest,id_product')
+            ->joinWith('idProduct.idType')
+            ->where($model->where)->orderBy("arrival.id DESC")->one();
+			
+		$arrival=Arrival::find()->select('price')->where(["id_product"=>$query->id_product])->andWhere("rest>0")->orderBy("id DESC")->one();
+	if ($query->rest>0) 
+			return $query->rest*$arrival->price;
+else return 0;		
+		
+	}
+    public function getSumArrival($model,$column){
+        $sum=0;
+		$model2=$model->where;
+		foreach ($model2 as $key=>$where)
+		{
+			if ($where[1]=="`bar_code`.`name`") 
+					{ 
+			
+						foreach (Barcodep::find()->andWhere(['like', 'name',"%$where[2]%", false])->all() as $barcode){
+
+						$product[]=$barcode->id_product;
+						
+						}
+						unset($model2[$key]);
+						
+					}
+		}
+								
+		
+	
+     $query =  Arrival::find()->select("sum(quantity) as quantity,sum(sum) as sum, sum(usd*quantity) as usd,sum(pricesell*quantity) as pricesell")->andWhere("`id_contr`!=0")
+            ->joinWith('idProduct.idType')
+            ->andFilterWhere($model2)
+			->andFilterWhere(["in","id_product",$product])
+		  ->one();
+		//print_r($query);
+        return round($query->$column,2);
+    }
+
+    public function getSumNumber($number,$column){
+        if ($column=="sum_usd")   $model=Arrival::find()->select("sum(usd*quantity) as sum")->where(["number"=>$number])->one()->sum;
+        else
+       $model=Arrival::find()->select("sum(".$column.") as ".$column)->where(["number"=>$number])->one()->$column;
+
+        return $model;
+    }
+    public function getPriceRest(){
+    $model=Arrival::find()->where(["id_product"=>$this->id_product,"id_store"=>$this->id_store])->orderBy("id DESC")->one();
+    return $model->price;
+	   
+    }
+    public function getUsdRest(){
+        $model=Arrival::find()->where(["id_product"=>$this->id_product,"id_store"=>$this->id_store])->orderBy("id DESC")->one();
+        return $model->usd;
+    }
+	  public function getPriceSum(){
+        $model=Arrival::find()->where(["id_product"=>$this->id_product,"id_store"=>$this->id_store])->orderBy("id DESC")->one();
+      
+		return round($model->price*$this->rest,2);
+	
+    }
+      public function getSumUsd()
+    {
+        return $this->pricesell*$this->quantity;
+    }
+    public function getPriceSell()
+    {
+        $arrival=Arrival::find()
+            ->select('pricesell')
+            ->where(['id_product' => $this->id_product])
+            ->orderBy([
+                'id' => SORT_DESC
+            ])
+            ->one();
+        if ($arrival->pricesell) $pricesell=$arrival->pricesell;
+        else $pricesell=0;
+        return $pricesell;
+    }
+	
+	public function getPriceSellSum()
+    {
+        $arrival=Arrival::find()
+            ->select('pricesell')
+            ->where(['id_product' => $this->id_product])
+            ->orderBy([
+                'id' => SORT_DESC
+            ])
+            ->one();
+        return round($arrival->pricesell*$this->rest,2);
+    }
+    public function getGetNumber()
+    {
+
+		$arrival=Arrival::find()
+            ->select('sum(quantity) as quantity,sum(rest) as rest')
+            ->where(['number' => $this->number])
+            ->orderBy([
+                'id' => SORT_DESC
+            ])
+            ->one();
+			if ($arrival->quantity==$arrival->rest)
+        return $this->number."   ".Html::button('<i class="glyphicon glyphicon-remove"></i>',["onclick"=> "cancelArrrival($this->number)",'class' => 'btn btn-primary btn-xs']);
+	else return $this->number;
+    }
+	
+	public function getBoxing()
+	{
+		$boxing=Product::find()->where(["id"=>$this->id_product])->one()->boxing;
+		
+		return $boxing;
+		
+	}
+	
+	 public function getGetNumberPost()
+    {
+
+
+        return $this->number."   ".Html::button('<i class="glyphicon glyphicon-remove"></i>',["onclick"=> "cancelArrrival($this->number)"]).Html::button('<i class="glyphicon glyphicon-ok"></i>',["onclick"=> "postponedArrivalSelect($this->number)"]);
+    }
+}
+
+
+
+
+
+

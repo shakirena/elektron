@@ -1,0 +1,103 @@
+<?php
+
+namespace app\models;
+
+use Yii;
+use yii\bootstrap\Html;
+
+/**
+ * This is the model class for table "dclient".
+ *
+ * @property integer $id
+ * @property integer $id_client
+ * @property integer $number
+ * @property double $debt
+ * @property double $sum
+ * @property string $datetime
+ * @property string $date_return
+ *
+ * @property Client $idClient
+ */
+class Dclient extends \yii\db\ActiveRecord
+{
+    /**
+     * @inheritdoc
+     */
+	public $debt_sum;
+    public static function tableName()
+    {
+        return 'dclient';
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function rules()
+    {
+        return [
+            [['id_client',  'datetime'], 'required'],
+            [['id_client', 'number'], 'integer'],
+            [['debt', 'sum','usd','bonus'], 'number'],
+            [['datetime', 'date_return','note'], 'safe'],
+            [['id_client'], 'exist', 'skipOnError' => true, 'targetClass' => Client::className(), 'targetAttribute' => ['id_client' => 'id_client']],
+        ];
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function attributeLabels()
+    {
+        return [
+            'id' => 'ID',
+            'id_client' => 'Müştəri',
+            'number' => 'Sənədin nömrəsi',
+            'debt' => 'Qalıq <br> Borc',
+            'sum' => 'Cəmi',
+            'datetime' => 'Gəbul tarixi',
+            'date_return' => 'Date Return',
+            ''
+        ];
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getIdClient()
+    {
+        return $this->hasOne(Client::className(), ['id_client' => 'id_client']);
+    }
+    public function getGetNumber()
+    {
+
+
+        return Html::a($this->number,'javascript:void(null);',['onclick'=>" window.open('report1?number='+$this->number,'_blank')"]) ;
+    }
+	
+	   public function getDateReturn()
+    {
+		$date=Dclient::find()->where(["id_client"=>$this->id_client])->andWhere("debt>0 or usd>0")->orderBy("date_return ASC")->one()->date_return;
+		$date1 = new \DateTime($date);
+		$date1->modify("-3 day");
+		$date1=$date1->format('Y-m-d');
+		if ($date1 <=$date )  return "<span style='color:red'>".$date."</span>";
+		else return "<span>".$date."</span>";
+
+	
+	
+		
+      
+    }
+	public function getGetPhone()
+	{
+		return Client::find()->where(["id_client"=>$this->id_client])->one()->phone;
+	}
+	public function getSumDebt($model)
+	{
+		  $query = Dclient::find()->select('sum(debt) as debt')
+           
+            ->where($model->where)->one();
+
+        return $query->debt;
+	}
+}

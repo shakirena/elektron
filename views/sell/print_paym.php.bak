@@ -1,0 +1,78 @@
+<?php
+
+use yii\helpers\Html;
+use kartik\grid\GridView;
+use yii\bootstrap\Modal;
+use yii\helpers\Url;
+use yii\widgets\Pjax;
+use \app\models\Product;
+use \app\models\Client;
+use \app\models\Sell;
+use yii\helpers\ArrayHelper;
+
+use kartik\date\DatePicker;
+
+/* @var $this yii\web\View */
+/* @var $searchModel app\models\ArrivalSearch */
+/* @var $dataProvider yii\data\ActiveDataProvider */
+
+$this->title = 'Arrivals';
+//$this->params['breadcrumbs'][] = $this->title;
+?>
+
+<div id="inf" style="width:280px;" >
+ <p style="font-size:20pt;"><b>ELEKTRON</b></p>   
+	<table>
+		<tr>
+			<td colspan="2">
+				
+				<p style="font-size:14pt;" >
+				Müştəri: <?= Client::find()->where(["id_client"=>$id])->one()->fio?><br>
+				<br>Tarix: <?php echo date("Y-m-d H:i:s"); ?><br/>
+				
+				</p>
+			
+			</td>
+		</tr>
+		<tr class="border">
+			<td>
+				Əvvəlki Qalıq:
+			</td>
+			<td>
+				<?=$debt?>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				Ödənildi:
+			</td>
+			<td>
+				<?=$sum?>
+			</td>
+		</tr>
+				<tr>
+			<td>
+				Qalıq borc:
+			</td>
+			<td>
+				<?=$debt_new?>
+			</td>
+		</tr>
+	</table>
+
+
+    
+</div>
+
+
+<?php
+$script = <<< JS
+  
+
+       window.print();
+
+
+
+JS;
+$this->registerJs($script);
+?>

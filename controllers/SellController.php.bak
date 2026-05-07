@@ -1,0 +1,2030 @@
+<?php
+
+namespace app\controllers;
+use app\models\History;
+use app\components\PushAll;
+use app\models\Arrival;
+use app\models\Balance;
+use app\models\BalanceSearch;
+use app\models\Barcodep;
+use app\models\Client;
+use app\models\Dclient;
+use app\models\Debt;
+use app\models\Product;
+use app\models\Discount;
+use app\models\Returnp;
+use app\models\Sell2;
+use app\models\Debt2;
+use app\models\Sverka;
+use app\models\Bonus;
+use app\models\Product2;
+use app\models\Arrival2;
+use app\models\ReturnArrival2;
+use app\models\ReturnArrival;
+use app\models\TypeProduct2;
+use app\models\Barcodep2;
+use app\models\Postponed;
+use app\models\TypeProduct;
+use Yii;
+use app\models\Sell;
+use app\models\Costs;
+use app\models\SellSearch;
+use app\models\SellNumSearch;
+use app\models\Sell2Search;
+use app\models\ProductSearch;
+use app\models\ClientSearch;
+use app\models\Users;
+use yii\bootstrap\Html;
+use yii\web\Controller;
+use yii\web\NotFoundHttpException;
+use yii\filters\VerbFilter;
+use app\models\RestSearch;
+use kartik\mpdf\Pdf;
+use kartik\select2\Select2;
+use yii\helpers\ArrayHelper;
+//use app\models\Move;
+use app\models\DclientSearch;
+use app\models\Exchange;
+use app\models\Image;
+use app\models\Password;
+use yii\filters\AccessControl;
+/**
+ * SellController implements the CRUD actions for Sell model.
+ */
+class SellController extends Controller
+{
+    /**
+     * @inheritdoc
+     */
+    public function behaviors()
+    {
+        return [
+            'verbs' => [
+                'class' => VerbFilter::className(),
+                'actions' => [
+                    'delete' => ['POST'],
+                ],
+            ],
+			
+			'access' => [
+                'class' => AccessControl::className(),
+                'only' => ['index','report','dialog','postponed'],
+                'rules' => [
+                    [
+                       
+                        'allow' => true,
+                        'roles' => ['@'],
+                    ],
+					
+                ],
+            ],
+			
+        ];
+    }
+
+    /**
+     * Lists all Sell models.
+     * @return mixed
+     */
+    public function actionIndex()
+    {
+		
+		
+	
+        $searchModel = new Sell2Search(['sold'=>0,'id_user'=> Yii::$app->user->identity->id_user,'returnp' =>0,'postponed'=>0]);
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+       // var_dump($searchModel) ;
+        $sum=Sell2::find()->select('sum(sum) as sum,user_issue,id_client,id_store')->where(['sold'=>'0','id_user'=> Yii::$app->user->identity->id_user,'postponed'=>'0'])->groupBy('number')->one();
+        $bonus = $this->actionBonusSum(Yii::$app->session->get('id_bonus'));
+
+         return $this->render('index', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+            'sum'=> $sum->sum,
+			'model'=>$sum,
+			'user'=>$sum->user_issue,
+			'bonus' => $bonus
+           
+
+        ]);
+    }
+	public function actionIndex2()
+    {
+		$this->layout = 'start';
+        $searchModel = new Sell2Search(['sold'=>0,'id_user'=> Yii::$app->user->identity->id_user,'returnp' =>0,'postponed'=>0]);
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+       // var_dump($searchModel) ;
+        $sum=Sell2::find()->select('sum(sum) as sum,user_issue,id_client,id_store')->where(['sold'=>'0','id_user'=> Yii::$app->user->identity->id_user,'postponed'=>'0'])->groupBy('number')->one();
+        
+
+         return $this->render('index_mobile', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+            'sum'=> $sum->sum,
+			'model'=>$sum,
+			'user'=>$sum->user_issue
+           
+
+        ]);
+    }
+    public function actionAbout()
+    {
+
+
+        $searchModel = new Sell2Search(['sold'=>0,'id_user'=> Yii::$app->user->identity->id_user,'returnp' =>0]);
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+        // var_dump($searchModel) ;
+        $sum=Sell2::find()->select('sum(sum) as sum')->where(['sold'=>'0','id_user'=> Yii::$app->user->identity->id_user])->groupBy('number')->one()->sum;
+        $usd=Sell2::find()->select('sum(usd*quantity) as sum')->where(['sold'=>'0','id_user'=> Yii::$app->user->identity->id_user])->groupBy('number')->one()->sum;
+
+
+        return $this->render('index', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+            'sum'=> $sum,
+            'usd'=> $usd
+
+        ]);
+    }
+
+    public function actionScales()
+    {
+        return $this->render('scale');
+    }
+ 
+  public function actionImportXls()
+    {
+
+        $thumb=file_get_contents("D:\\terezi.xls");
+      //  print_r($thumb);
+       // $thumb=iconv("ASCII",'UTF-8',)
+        $thumb=mb_convert_encoding($thumb,'UTF-8','UCS-2LE');
+    //  echo  mb_detect_encoding($thumb);
+        $thumb=str_replace(',','.',$thumb);
+        $thumb1=explode("\n", $thumb);;
+        $count=0;$i=0;
+        foreach($thumb1 as $key=>$val)
+        {
+
+            if ($i>0) {
+
+
+
+                $ln = explode("\t", $val);
+                if ($ln[2]>0) $product = Product::find()->andWhere(['plu' => $ln[2]])->one();
+                $name=mb_convert_encoding($ln[1],'UTF-8',mb_detect_encoding($ln[1]));
+               // echo $name;
+                if ($product->id) {
+                    $data = array($ln[0], $ln[4], $ln[2]);
+                    $product = Product::find()->where(['plu' => $ln[3]])->one()->id;
+					$model=Product::find()->where(['plu' => $ln[3]])->one();
+					$model->name=$name;
+					$model->save();
+                   
+					
+					$barcode=new Barcodep();
+					$barcode->deleteAll(['id_product' => $product]);
+					
+					 $barcode=new Barcodep();
+                    $barcode->id_product=$model->id;
+                    $barcode->name="tərəzi";
+                    $barcode->save();
+
+                    //$sth = $dbh->prepare("UPDATE product SET NAME=?,price=? WHERE plu=?");
+                    //$sth->execute($data);
+                } else {
+
+
+                    $product = new Product();
+                    $product->name =$name;
+                  // echo  $product->name;
+                    $product->plu = $ln[3];
+                    $product->id_type = 1;
+                   $count++;
+                //    print_r($product);
+                    $product->save();
+                    $barcode=new Barcodep();
+                    $barcode->id_product=$product->id;
+                    $barcode->name="tərəzi";
+                    $barcode->save();
+
+                   
+
+                }
+            }
+           $i++;
+        }
+        echo $count." çeşiddə mal əlavə olundu";
+    }
+       
+ public function actionUpdateQuantity($id, $quantity)
+    {
+        $model =Sell2::find()->where(['id'=>$id])->one();
+		    if(preg_match("/(.*?)\/(.*?)/", $quantity))
+        {
+
+
+            $string_t = preg_replace('/\/.*/', '', $quantity);
+            $string_b = preg_replace('/.*?\//', '', $quantity);
+            $count=$string_t/$string_b;
+            $quantity=round($count, 4);
+            $model->price= Arrival::find()->where(['id_product' =>  $model->id_product])->orderBy("id DESC")->one()->price_top;
+            $model->sum = $string_t * $model->price;
+        }
+        else $model->sum = $quantity * $model->price;
+		
+        $model->quantity = $quantity;
+
+       
+        $model->save();
+
+        return $model->sum;
+
+    }
+    public function actionPostponed()
+    {
+        $searchModel = new Sell2Search();
+
+
+        //  $searchModel->date_start = date('Y-m-d')." 00:00:00";
+        //   $searchModel->date_end = date('Y-m-d')." 23:59:59";
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+     $dataProvider->query->andWhere("postponed!=0 and returnp=0");
+        return $this->render('postponed', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+
+
+        ]);
+    }
+	 public function actionPostponed2()
+    {
+        $this->layout='start';
+		$searchModel = new Sell2Search();
+
+
+        //  $searchModel->date_start = date('Y-m-d')." 00:00:00";
+        //   $searchModel->date_end = date('Y-m-d')." 23:59:59";
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+     $dataProvider->query->andWhere("postponed!=0 and returnp=0");
+        return $this->render('postponed_mobile', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+
+
+        ]);
+    }
+    public function actionPostponedShow($number)
+    {
+        $model=Sell::find()->select("sell.id,name as name_product,sell.postponed as quantity, id_product,product.id_type as id_client")->joinWith("idProduct")->where(["number" => $number])->andWhere("postponed>0 and returnp=0")->all();
+        return $this->renderAjax('postponed_show', [
+            'model' => $model,
+
+
+        ]);
+    }
+    public function actionReturnShow($number)
+    {
+        $model=Sell::find()->select("sell.id,name as name_product,(sell.quantity-sell.postponed) as quantity")->joinWith("idProduct")->where(["number" => $number])->andWhere("postponed<quantity and returnp=0")->all();
+        return $this->renderAjax('return_show', [
+            'model' => $model,
+
+
+        ]);
+    }
+	
+	public function actionReturnSellReceived($sum,$store,$user,$bonusum)
+    {
+	
+		
+			  $max = Returnp::find()->select('number')->max('number');
+						if ($max) $max = $max + 1;
+						else $max = 1;
+				$summa = 0;
+					if (Yii::$app->session->get('id_client') == 300) 
+							{
+									$arrival=Arrival::find()->where(['id_product' => $return->id_product])->orderBy(['datetime' => SORT_DESC])->one();
+									$max2 = Arrival2::find()->select('number')->max('number');
+											if ($max2) $max2 = $max2 + 1;
+											else $max2 = 1;
+							}
+				  foreach (Sell2::find()->where(['sold' => 0,'postponed'=>0,'id_user'=>Yii::$app->user->identity->id_user])->all() as $sell) {
+						
+						$return=new Returnp();
+						$return->id_product=$sell->id_product;
+						$return->id_user=$user;
+						$return->id_client=Yii::$app->session->get('id_client');;
+						$return->id_store=$store;
+						$return->data=date("Y-m-d");
+						$return->received=0;
+						$return->quantity=$sell->quantity;
+						$return->number=$max;
+						$return->price=$sell->price;
+			   
+						$return->save();
+						$summa = $summa + $sell->sum;
+						$arrival=Arrival::find()->where(['id_product' => $sell->id_product, 'id_store' => $store])->orderBy(['datetime' => SORT_DESC])->one();
+						if ($arrival->id)
+						{
+							$arrival->rest=$arrival->rest+$return->quantity;
+							$arrival->save();
+						}
+						else 
+						{
+							$arrival=Arrival::find()->where(['id_product' => $sell->id_product])->orderBy(['datetime' => SORT_DESC])->one();
+							if ($arrival->id)
+							{
+								$price=$arrival->price;
+								
+							}
+								else $price=$sell->price;
+							
+								$max1 = Arrival::find()->select('number')->max('number');
+											if ($max1) $max1 = $max1 + 1;
+											else $max1 = 1;
+								$arrival=new Arrival();
+										
+								$arrival->id_product =$sell->id_product;
+								$arrival->quantity = $sell->quantity;
+								$arrival->rest = $sell->quantity;
+								$arrival->price =$price;
+											
+								$arrival->pricesell =$sell->price;
+								$arrival->pack =1;
+								$arrival->id_store= $store;
+								$arrival->number= $max1;
+								$arrival->datetime=date("Y-m-d H:i:s");
+								$arrival->sum = $price*$row->quantity;
+								$arrival->id_user = Yii::$app->user->identity->id_user;
+								$arrival->received = 1;
+								$arrival->save();
+						}
+						  
+						  
+							if (Yii::$app->session->get('id_client') == 300) 
+							{
+									
+									$model=new Arrival2();
+										
+									$model->id_product =$arrival->id_product;
+									$model->quantity = $sell->quantity;
+									$model->rest = $sell->quantity;
+									$model->price =$sell->price;			
+									$model->pricesell =$arrival->pricesell;
+									$model->price_top =$arrival->price_top;		
+									$model->trade_price =$arrival->trade_price;	
+									$model->pricesell_min =$arrival->pricesell_min;										
+									$model->pack =1;
+									$model->id_store= 1;
+									$model->number= $max2;
+									$model->datetime=date("Y-m-d H:i:s");
+									$model->sum = $sell->price*$sell->quantity;
+									$model->id_user = 2;
+									$model->received = 0;
+									$model->postponed = 1;
+									$model->save();
+			
+						
+							}  
+						 $sell->delete(); 
+						  
+				  }
+				  
+						$bonus =  Bonus::find()->where(['status' =>1])->one();
+							if ($bonus->par1) 
+								{
+									$bonus_sum = $summa*$bonus->par1/100;
+								}
+							else {
+									$bonus_sum = (int)($summa/$bonus->par2)*$bonus->par3;  
+							}
+							$bonus_sum = -$bonus_sum;
+							
+						$dclient=new Dclient();
+						$dclient->sum=-$sum;
+						$dclient->debt=-($summa-$sum-$bonusum);
+						$dclient->pos=$bonusum;
+						$dclient->number=$max;
+						$dclient->id_client=$return->id_client;
+						$dclient->datetime=date("Y-m-d H:i:s");
+						if (Yii::$app->session->get('id_bonus')==$return->id_client)
+						{
+						$dclient->bonus=$bonus_sum;
+						
+						}
+						$dclient->save();
+						if (Yii::$app->session->get('id_bonus')!=$return->id_client)
+						{
+							
+							
+							 
+							 $dclient=new Dclient();
+							$dclient->sum = 0;
+							$dclient->debt = 0;
+							$dclient->number=$max;
+							$dclient->id_client=Yii::$app->session->get('id_bonus');;
+							$dclient->datetime=date("Y-m-d H:i:s");
+							$dclient->bonus=$bonus_sum;
+							$dclient->pos=$bonusum;
+							$dclient->save();
+						}
+						if (Yii::$app->session->get('id_bonus')) {
+							$cost = new Costs();
+							$cost->id_kassa = 1;
+							$cost->sum = $bonus_sum;
+							$cost->fid = $max;
+							$cost->id_type = 4;
+							$cost->id_client = Yii::$app->session->get('id_bonus');
+							$cost->id_user = Yii::$app->user->identity->id_user;
+							$cost->datetime=date("Y-m-d H:i:s");
+							$cost->save();
+							
+							$cost = new Costs();
+							$cost->id_kassa = 1;
+							$cost->sum = -$bonusum;
+							$cost->fid = $max;
+							$cost->id_type = 3;
+							$cost->id_client = Yii::$app->session->get('id_bonus');
+							$cost->id_user = Yii::$app->user->identity->id_user;
+							$cost->datetime=date("Y-m-d H:i:s");
+							$cost->save();
+						
+						}
+					Yii::$app->session->set('id_client', 1);
+					Yii::$app->session->set('client', "Müştəri");
+		Yii::$app->session->remove('id_bonus');
+         Yii::$app->session->remove('bonus');
+		
+	}
+	public function actionCancelPos($number){
+	
+	//$user
+    $sell=new Sell2();
+    $sell->updateAll(["postponed"=>0,'sold'=>0,"id_user"=>Yii::$app->user->identity->id_user], ["number"=>$number]);
+
+
+}
+public function actionPhoto($id)
+	{
+		
+		$path=Image::find()->where(["id_tre" =>  $id])->one();
+		
+		return  Html::img(Yii::getAlias('@web')."/". $path->path);
+
+	}
+	public function actionReturnReceived(array $id,array $quantity,$reason,$money,$store)
+    {
+        $i=0;
+        $max = Returnp::find()->select('number')->max('number');
+        if ($max) $max = $max + 1;
+        else $max = 1;
+        foreach (Sell::find()->where(["id" => $id])->all() as $sell){
+            $return=new Returnp();
+            $return->id_product=$sell->id_product;
+	            $return->id_user=Yii::$app->user->identity->id_user;
+            $return->id_client=$sell->id_client;
+            $return->id_store=$store;
+            $return->reason=$reason;
+            $return->data=date("Y-m-d");
+            $return->received=0;
+            $return->quantity=$quantity[$i];
+            $return->number=$max;
+            $return->id_sell=$sell->id;
+            $return->money=$money;
+           $return->save();
+            $number=$sell->number;
+$i++;
+          /*  if ($sell->quantity==$quantity[$i])
+            $sell->delete();
+            else{
+                $sell->quantity=$sell->quantity-$quantity[$i];
+                $sell->save();
+            }
+            $i++;*/
+        }
+
+   
+    }
+
+
+
+
+    /**
+     * Displays a single Sell model.
+     * @param integer $id
+     * @return mixed
+     */
+    public function actionView($id)
+    {
+        return $this->render('view', [
+            'model' => $this->findModel($id),
+        ]);
+    }
+
+    /**
+     * Creates a new Sell model.
+     * If creation is successful, the browser will be redirected to the 'view' page.
+     * @return mixed
+     */
+    public function actionCreate()
+    {
+        $model = new Sell();
+
+        if ($model->load(Yii::$app->request->post()) && $model->save()) {
+            return $this->redirect(['view', 'id' => $model->id]);
+        } else {
+            return $this->render('create', [
+                'model' => $model,
+            ]);
+        }
+    }
+    public function actionDeleteAll()
+    {
+        $model = new Sell2();
+        $model->deleteAll(['sold' => 0,'id_user'=> Yii::$app->user->identity->id_user,'postponed'=>0]);
+		Yii::$app->session->remove('id_client');
+		Yii::$app->session->remove('client');
+		 Yii::$app->session->set('id_client',1);
+		  Yii::$app->session->set('client','Muştəri');
+          Yii::$app->session->remove('id_bonus');
+          Yii::$app->session->remove('bonus');
+    }
+    /**
+     * Updates an existing Sell model.
+     * If update is successful, the browser will be redirected to the 'view' page.
+     * @param integer $id
+     * @return mixed
+     */
+    public function actionUpdate($id)
+    {
+        $model = $this->findModel($id);
+
+        if ($model->load(Yii::$app->request->post()) && $model->save()) {
+            return $this->redirect(['view', 'id' => $model->id]);
+        } else {
+            return $this->render('update', [
+                'model' => $model,
+            ]);
+        }
+    }
+
+    /**
+     * Deletes an existing Sell model.
+     * If deletion is successful, the browser will be redirected to the 'index' page.
+     * @param integer $id
+     * @return mixed
+     */
+    public function actionDelete($id)
+    {
+        $model =Sell2::find()->where(['id'=>$id])->one();
+        $model->delete();
+        return $this->redirect(['index']);
+    }
+	  public function actionDelete2($id)
+    {
+        $model =Sell2::find()->where(['id'=>$id])->one();
+        $model->delete();
+        return $this->redirect(['index2']);
+    }
+
+    /**
+     * Finds the Sell model based on its primary key value.
+     * If the model is not found, a 404 HTTP exception will be thrown.
+     * @param integer $id
+     * @return Sell the loaded model
+     * @throws NotFoundHttpException if the model cannot be found
+     */
+    protected function findModel($id)
+    {
+        if (($model = Sell::findOne($id)) !== null) {
+            return $model;
+        } else {
+            throw new NotFoundHttpException('The requested page does not exist.');
+        }
+    }
+
+    public function actionFind()
+    {
+
+        $searchModel = new RestSearch();
+		
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+		$dataProvider->pagination->pageSize=30;
+        return $this->renderAjax('find', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+        ]);
+
+    }
+	  public function actionFindMobile()
+    {
+		$this->layout = 'start';
+        $searchModel = new RestSearch();
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+
+        return $this->render('find_mobile', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+        ]);
+
+    }
+    public function actionReturn()
+    {
+
+        $searchModel = new ProductSearch();
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+
+        return $this->renderAjax('return', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+        ]);
+
+    }
+    public function actionReceivedReturn($id,$quantity,$reason,$client)
+    {
+        $returnp=new Returnp();
+        $returnp->id_product=$id;
+        if (!$reason) $reason="";
+        $returnp->reason=$reason;
+        $returnp->id_client=$client;
+        $returnp->quantity=$quantity;
+        $returnp->data=date("Y-m-d");
+        $returnp->id_user= Yii::$app->user->identity->id_user;
+        $returnp->save();
+        $returnp->save();
+        $arrival=Arrival::find()->where(["id_product"=>$id])->orderBy("datetime DESC")->one();
+
+        $arrival->rest=$arrival->rest+$quantity;
+        $arrival->save();
+
+
+      //  $dclient=Dclient::find()->where(['number'=>Sell::find()->where(["id"=>$returnp=>])])
+      Yii::$app->session->remove('id_bonus');
+      Yii::$app->session->remove('bonus');
+
+    }
+
+       public function actionInsert($id, $quantity)
+    {
+        $arrival=Arrival::find()
+            ->select('pricesell,trade_price')
+            ->where(['id_product' => $id,'received'=>1])
+            ->orderBy([
+                'datetime' => SORT_DESC
+            ])
+            ->one();
+		
+		$pricesell=Sell::find()->where(["id_product"=>$id,'id_client'=>Yii::$app->session->get('id_client')])->andWhere("id_client!=1")->orderBy("id DESC")->one();	
+			
+        $sell=Sell2::find()->where(['sold' => 0,'id_user'=>Yii::$app->user->identity->id_user,'postponed'=>0])->one();
+        if ($sell->number) $max=$sell->number;
+	  else {
+				$sell=Sell2::find()->where(['sold' => 0,'id_user'=>Yii::$app->user->identity->id_user])->orderBy("id DESC")->one();
+			if ($sell->number)
+				if ($sell->postponed>0) 	{   $max1 = Sell::find()->select('number')->max('number');
+												$max2 = Sell2::find()->select('number')->max('number');
+												if ($max1)
+												if ($max1>$max2) $max = $max1 + 1;
+												else $max = $max2 + 1;
+													else $max = 1;
+											}
+				else $max=$sell->number;
+			else 	{   $max1 = Sell::find()->select('number')->max('number');
+												$max2 = Sell2::find()->select('number')->max('number');
+												if ($max1)
+												if ($max1>$max2) $max = $max1 + 1;
+												else $max = $max2 + 1;
+													else $max = 1;
+											}
+
+
+        }
+        $sell=Sell2::find()->where(["id_product"=>$id, 'id_user'=>Yii::$app->user->identity->id_user, 'sold'=>0,'postponed'=>0])->one();
+        if ($sell->id) {
+            $sell->quantity=$sell->quantity+$quantity;
+			$sell->sum=$sell->quantity*$sell->price;
+			 $sell->datetime = date("Y-m-d H:i:s");
+            $sell->save();
+        }
+        else {
+			
+			
+			
+			$sell = new Sell2();
+            $sell->id_product = $id;
+            $sell->id_user = Yii::$app->user->identity->id_user;
+			if (Yii::$app->session->get('id_client')!=1) {
+			if ($pricesell->price) $price=$pricesell->price;
+			else $price=$arrival->pricesell;}
+			else
+			if ($arrival->pricesell) $price=$arrival->pricesell;
+            else $price=0;
+			if ($arrival->trade_price) $trade_price=$arrival->trade_price;
+            else $trade_price=0;
+            if(preg_match("/(.*?)\/(.*?)/", $quantity))
+            {
+
+
+                $string_t = preg_replace('/\/.*/', '', $quantity);
+                $string_b = preg_replace('/.*?\//', '', $quantity);
+                $count=$string_t/$string_b;
+                $quantity=round($count, 4);
+                $sell->price= Arrival::find()->where(['id_product' =>  $id])->orderBy("id DESC")->one()->price_top;
+                $sell->sum = $string_t * $sell->price;
+            }
+            else {
+            $sell->price =$price;
+            $sell->sum = $quantity*$price;}
+            $sell->quantity = $quantity;
+            $sell->datetime=date("Y-m-d H:i:s");
+            $sell->sold = 0;
+            $sell->number=$max;
+			$sell->usd =$trade_price;
+            $sell->id_store=Yii::$app->session->get("store");
+            $sell->save();
+        }
+		
+        
+
+
+        var_dump( $sell);
+
+
+    }
+	public function actionCheckKassa($sum)
+	{
+	 if (!Yii::$app->session->get('id_bonus')) return 1;
+	 $bonus = $this->actionBonusSum(Yii::$app->session->get('id_bonus'));
+	if ($bonus<$sum) return 2;
+	 
+	
+	}
+	public function actionCheckBonus($barcode)
+	{
+		
+		  if (substr($barcode,0,2)==26 && strlen($barcode) == 13) {
+				$client = Client::find()->where(['barcode' => $barcode ])->one();
+				if ($client) {
+				Yii::$app->session->set('id_bonus', $client->id_client);
+				Yii::$app->session->set('bonus',  $client->fio);
+				return 1;
+				}
+			}
+		return 0;
+		
+	}
+
+	public function actionCheckBarcode($barcode)
+	{
+		
+		 $product=Barcodep::find()
+            ->select("count(*) as id_product")
+            ->where(["name"=>$barcode])
+            ->one();
+			
+		if ($product->id_product<=1)  return 0;
+
+		else return 1;
+		
+	}
+	public function actionBarcodeShow($barcode)
+	{
+		$i=0;
+	
+		foreach (Barcodep::find()
+            ->where(["name"=>$barcode])
+            ->all() as  $product)
+			{
+				
+				$products[$i]=$product->id_product;
+				$i++;
+			}
+			
+			$product=Product::find()->where(["in","id",$products])->all();
+		return $this->renderAjax('show_barcode', [
+                'products' => $product,
+            ]);
+        
+	}
+    public function actionInsertBarcode($barcode)
+    {
+
+		  
+        $product=Barcodep::find()
+            ->select("id_product")
+            ->where(["name"=>$barcode])
+            ->one();
+        $sell=Sell2::find()->where(['sold' => 0,'id_user'=>Yii::$app->user->identity->id_user,'postponed'=>0])->one();
+        if ($sell->number) $max=$sell->number;
+	  else {
+				$sell=Sell2::find()->where(['sold' => 0,'id_user'=>Yii::$app->user->identity->id_user])->orderBy("id DESC")->one();
+			if ($sell->number)
+				if ($sell->postponed>0) 	{   $max1 = Sell::find()->select('number')->max('number');
+												$max2 = Sell2::find()->select('number')->max('number');
+												if ($max1)
+												if ($max1>$max2) $max = $max1 + 1;
+												else $max = $max2 + 1;
+													else $max = 1;
+											}
+				else $max=$sell->number;
+			else 	{   $max1 = Sell::find()->select('number')->max('number');
+												$max2 = Sell2::find()->select('number')->max('number');
+												if ($max1)
+												if ($max1>$max2) $max = $max1 + 1;
+												else $max = $max2 + 1;
+													else $max = 1;
+											}
+
+
+        }
+
+if ($product->id_product) {
+    $arrival = Arrival::find()
+        ->select('pricesell,trade_price')
+        ->where(['id_product' => $product->id_product,'received'=>1])
+        ->orderBy([
+            'datetime' => SORT_DESC
+        ])
+        ->one();
+ 
+	$pricesell=Sell::find()->where(["id_product"=>$id,'id_client'=>Yii::$app->session->get('id_client')])//->andWhere("id_client!=1")
+	->orderBy("id DESC")->one();	
+    
+	$sell=Sell2::find()->where(["id_product"=>$product->id_product, 'id_user'=>Yii::$app->user->identity->id_user, 'sold'=>0,'postponed'=>0])->one();
+    if ($sell->id) {
+        $sell->quantity=$sell->quantity+1;
+		$sell->sum=$sell->quantity*$sell->price;
+		 $sell->datetime = date("Y-m-d H:i:s");
+        $sell->save();
+    }
+    else
+    {
+        $sell = new Sell2();
+        $sell->id_product = $product->id_product;
+        $sell->id_user = Yii::$app->user->identity->id_user;
+        $sell->quantity = 1;
+        $sell->id_store=Yii::$app->session->get("store");
+		if (Yii::$app->session->get('id_client')!=1) {
+			if ($pricesell->price) $price=$pricesell->price;
+				else
+				if ($arrival->pricesell) $price=$arrival->pricesell;
+					else $price=0;}
+		else $price=$arrival->pricesell;
+        $sell->price = $price;
+		 if ($arrival->trade_price) $trade_price=$arrival->trade_price;
+            else $trade_price=0;
+		$sell->usd = $arrival->trade_price;
+        $sell->sum =  $price;
+        $sell->number=$max;
+        $sell->datetime = date("Y-m-d H:i:s");
+        $sell->sold = 0;
+        $sell->save();
+    }
+	
+	
+}
+ else {
+            if ($barcode!='' ) {
+                if (substr($barcode,0,2)==23) {
+            $code=substr($barcode,2,4);
+            $code=intval($code);
+
+            $product=Product::find()->andWhere("plu='$code' and plu!=''")->one()->id;
+            $product=Product::find()->andWhere("plu='$code' and plu!=''")->one()->id;
+
+            $price=Arrival::find()->where(["id_product"=>$product])->orderBy("id DESC")->one()->pricesell;
+            $quantity=substr($barcode,6,6);
+            $quantity1=(intval($quantity))/100;
+            echo $quantity."-".$price."-";
+            $quantity=round($quantity1/$price,3);
+
+            $sell = new Sell2();
+            $sell->id_product =  $product;
+            $sell->id_user = Yii::$app->user->identity->id_user;
+            $sell->quantity = $quantity;
+            $sell->id_store=Yii::$app->session->get("store");
+            $sell->price = $price;
+            $sell->sum =  $quantity1;
+            $sell->number=$max;
+            $sell->datetime = date("Y-m-d H:i:s");
+            $sell->sold = 0;
+            $sell->save();
+
+            echo $quantity;}}
+ }
+    }
+
+
+    public function actionUpdatePrice($id, $price)
+    {
+         $model =Sell2::find()->where(['id'=>$id])->one();
+        $model->price = $price;
+        $model->sum = $price * $model->quantity;
+        $model->save();
+
+        return $model->sum;
+
+    }
+    public function actionUpdateUsd($id, $price)
+    {
+        $model =Sell2::find()->where(['id'=>$id])->one();
+        $model->usd = $price;
+        $rate=Exchange::find()->one();
+        $azn=$price * $rate->rates;
+        $model->sum = $azn * $model->quantity;
+        $model->price=$azn;
+        $model->save();
+
+    }
+	
+	  public function actionUpdateUsdAzn($id)
+    {
+        $model =Sell2::find()->where(['id'=>$id])->one();
+        $rate=Exchange::find()->one();
+        $price=$model->price * $rate->rates;
+        $model->usd = $price;
+        $model->save();
+
+    }
+    public function actionUpdateSn($id, $sn)
+    {
+        $model =Sell2::find()->where(['id'=>$id])->one();
+        $model->sn = $sn;
+
+        $model->save();
+
+    }
+    public function actionSelect($id)
+    {
+       Yii::$app->session->set('id_client',$id);
+        $client=Client::find()
+            ->select("fio")
+            ->where(['id_client'=>$id])->one();
+        Yii::$app->session->set('client',$client->fio);
+		$model = new Sell2();
+        $model->updateAll(['id_client'=>$id], ['sold' => 0,'id_user' =>Yii::$app->user->identity->id_user,'postponed'=>0]);
+    }
+	public function actionLogin()
+    {
+        $model = new Password();
+
+		return $this->renderAjax('login', [
+                'model' => $model,
+            ]);
+        
+    }
+
+    public function actionClient()
+    {
+        $searchModel = new ClientSearch();
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+
+        return $this->renderAjax('client', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+        ]);
+    }
+	
+    public function actionClient2()
+    {
+		$this->layout='start';
+        $searchModel = new ClientSearch();
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+
+        return $this->render('client_mobile', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+        ]);
+    }
+    public function actionCheckRest($store){
+        $model = new Sell2();
+		$flag=-1;
+        foreach ($model->find()->where(['sold' => 0,'postponed'=>0,'id_user'=>Yii::$app->user->identity->id_user])->all() as $row) {
+            $arrival = Arrival::find()
+                ->select('sum(rest) as rest')
+                ->where(['id_product' => $row->id_product,'id_store'=>$store])
+                ->groupBy('id_product')
+                ->one();
+            if (round($arrival->rest,4)>=round($row->quantity,4))
+            { $flag=1;}
+            else
+			{ $flag=Product::find()->where(["id"=>$row->id_product])->one()->name;break;}
+               
+        }
+
+        if ($flag==1) return 0;
+        else return $flag;
+    }
+public function actionCancel($number){
+	
+			foreach (Sell::find()->where(['number'=>$number])->all() as $row) {
+						$sell=new Sell2();
+                       $sell->id_user=$row->id_user;
+                       $sell->id_product=$row->id_product;
+                       $sell->quantity=$row->quantity;
+                       $sell->price=$row->price;
+						$sell->price_ar = $row->price;
+                      
+                       $sell->sold = 0;
+                       $sell->sum=$row->sum;
+                       $sell->datetime=$row->datetime;
+                       $sell->id_client = $row->id_client;
+                       $sell->number=$row->number;
+					   $sell->user_issue=$row->user_issue;
+                       $sell->id_user=Yii::$app->user->identity->id_user;
+                       $sell->postponed =  $row->quantity;
+                       $sell->sn=$row->sn;
+                       $sell->usd=$row->usd;
+                       $sell->id_store=$row->id_store;
+                       $sell->earnings = $sell->earnings + ($row->price - $arrival->price) * $row->quantity;
+                       $sell->postponed = 0;
+                       $sell->debt = $sum;
+                       $sell->save();
+					   
+					  
+					   
+					   	
+						$arrival=Arrival::find()->where(['id_product' => $row->id_product, 'id_store' => $row->id_store])->orderBy(['datetime' => SORT_DESC])->one();
+						if ($arrival->id)
+						{
+						
+						$arrival->rest=$arrival->rest+$row->quantity;
+						$arrival->save();
+						}
+						
+						else 
+						{
+								$max = Arrival::find()->select('number')->max('number');
+								if ($max) $max = $max + 1;
+								else $max = 1;
+							$arrival=new Arrival();
+							
+							    $arrival->id_product =$row->id_product;
+								$arrival->quantity = $row->quantity;
+								$arrival->rest = $row->quantity;
+								$arrival->price =$row->price_ar;
+								
+								$arrival->pricesell =$row->price;
+								$arrival->pack =1;
+								$arrival->id_store= $row->id_store;
+								$arrival->number= $max;
+								$arrival->sum = $row->price_ar*$row->quantity;
+								$arrival->id_user = Yii::$app->user->identity->id_user;
+								$arrival->received = 1;
+								$arrival->save();
+
+							
+						}
+						 $row->delete();
+					   
+			}
+			
+	
+	$barcode=new Dclient();
+	$barcode->deleteAll(['number' => $number]);
+	$barcode=new Costs();
+	$barcode->deleteAll(['fid' => $number,'id_type' => 3]);
+	$barcode=new Costs();
+	$barcode->deleteAll(['fid' => $number,'id_type' => 4]);
+
+}
+    public function actionReceived($money,$postponed,$date,$rate,$store,$user,$discount,$kassa,$virtual)
+    {
+     
+           // $date=$date." 15:58:00";
+            $model = new Sell2();
+           $model->updateAll(['datetime'=>date("Y-m-d H:i:s")], ['sold' => 0,'id_user' =>Yii::$app->user->identity->id_user,'postponed'=>0]);
+
+     
+        $money2=$money;
+
+      $max=Sell2::find()->where(['sold' => 0,'id_user'=>Yii::$app->user->identity->id_user,'postponed'=>0])->one()->number;
+        $model = new Sell2();
+        $summa=0;  $usd=0;
+        foreach ($model->find()->where(['sold' => 0,'id_user'=>Yii::$app->user->identity->id_user,'postponed'=>0])->all() as $row) {
+            $sum=$row->sum-$money;
+            if($sum<0) $sum=0;
+            $money=$money-$row->sum;
+            if($money<0) $money=0;
+
+            $summa=$summa+$row->sum;
+			$usd=$usd+$row->usd;
+			
+		
+			
+            $arrival = Arrival::find()
+                ->select('sum(rest) as rest')
+                ->where(['id_product' => $row->id_product,'id_store'=>$store])
+                ->groupBy('id_product')
+                ->one();
+            if ($postponed==1) {
+                 $quantity = $row->quantity;
+                $row->postponed =  $row->quantity;
+				$row->user_issue =$user;
+				$row->id_client =Yii::$app->session->get('id_client');;
+                $row->save();
+
+                $sverka = Sverka::find()->where(["id_product" => $row->id_product])->one();
+                if ($sverka->quantity) {
+                    $sverka->quantity = $sverka->quantity - $quantity;
+                    $sverka->save();
+                }
+
+
+            }
+            else  if ($arrival->rest>0 && $arrival->rest>=$row->quantity) {
+                $vse = 0;
+
+                $arrival=Arrival::find()->where(['id_product' => $row->id_product,'id_store'=>$store])->andWhere("rest>0")->orderBy(['datetime' => SORT_ASC])->one();
+                   $sell=new Sell();
+				$sell->id_user=$row->id_user;
+                       $sell->id_product=$row->id_product;
+                       $sell->quantity=$row->quantity;
+                       $sell->price=$row->price;
+                        if ($rate==1) $sell->price_ar = $arrival->price;
+                        else $sell->price_ar = $arrival->usd;
+                       $sell->sold = 1;
+                       $sell->sum=$row->sum;
+                       $sell->usd=$row->usd;
+                       // if ($row->datetime)  
+						$sell->datetime=$row->datetime;
+					  //else $sell->datetime=date("Y-m-d H:i:s");
+                       $sell->id_client = Yii::$app->session->get('id_client');;
+                       $sell->id_bonus = Yii::$app->session->get('id_bonus');;
+                       $sell->number=$row->number;
+                       $sell->id_user=Yii::$app->user->identity->id_user;
+                       $sell->postponed =  $row->quantity;
+                       $sell->sn=$row->sn;
+                       $sell->id_store=$store;
+					   $sell->user_issue =$user;
+                     	      if (fmod( (float)$sell->quantity,1)>0 )
+								{
+									if ($arrival->price_top>0 )
+										$sell->earnings = ($arrival->price_top - $arrival->price/$arrival->pack) * $row->quantity;
+									else
+										$sell->earnings = ($arrival->pricesell - $arrival->price) * $row->quantity;
+								}	
+								else  $sell->earnings = ($row->price - $arrival->price) * $row->quantity;  
+                    $sell->earnings=round($sell->earnings,2);
+                       $sell->postponed = 0;
+                       $sell->debt = $sum;
+                       $sell->save();
+///print_r($sell);
+
+                // $row->delete();
+                $vse = 1;
+
+                foreach (Arrival::find()->where(['id_product' => $row->id_product,'id_store'=>$store])->andWhere("rest>0")->orderBy(['datetime' => SORT_ASC])->all() as $arrival) {
+                    $quantity = $row->quantity;
+
+                    if ($postponed == 0) {
+
+                        if ($row->quantity <= $arrival->rest) {
+                            $arrival->rest = $arrival->rest - $row->quantity;
+                            $arrival->save();
+							break;}
+
+                        else
+                        {
+                            $row->quantity=$row->quantity- $arrival->rest;
+                            $arrival->rest = 0;
+                            $arrival->save();
+							
+                        }
+                    }
+                }
+
+            }
+            else {
+                $arrival=Arrival::find()->where(['id_product' => $row->id_product,'id_store'=>$store])->orderBy(['datetime' => SORT_DESC])->one();
+
+                        $arrival->rest = $arrival->rest - $row->quantity;
+                        $arrival->save();
+                    $sell=new Sell();
+                    $sell->id_user=$row->id_user;
+                    $sell->id_product=$row->id_product;
+                    $sell->quantity=$row->quantity;
+                    $sell->price=$row->price;
+                    if ($rate==1) $sell->price_ar = $arrival->price;
+                        else $sell->price_ar = $arrival->usd;
+                    $sell->sold = 1;
+                    $sell->sum=$row->sum;
+                    $sell->usd=$row->usd;
+                    $sell->datetime=$row->datetime;
+                    $sell->id_client =Yii::$app->session->get('id_client');;
+                    $sell->number=$row->number;
+                    $sell->id_user=Yii::$app->user->identity->id_user;
+                    $sell->postponed =  $row->quantity;
+                    $sell->sn=$row->sn;
+                    $sell->id_store=$store;
+					$sell->user_issue =$user;
+					  if (fmod( (float)$sell->quantity,1)>0 )
+								{
+									if ($arrival->price_top>0 )
+										$sell->earnings = ($arrival->price_top - $arrival->price/$arrival->pack) * $row->quantity;
+									else
+										$sell->earnings = ($arrival->pricesell - $arrival->price) * $row->quantity;
+								}	
+								else  $sell->earnings = ($row->price - $arrival->price) * $row->quantity;  
+                   $sell->earnings=round($sell->earnings,2); 
+				   $sell->postponed = 0;
+                    $sell->debt = $sum;
+                    $sell->save();
+
+                }
+
+
+
+
+               $sverka=Sverka::find()->where(["id_product" => $row->id_product])->one();
+                if ($sverka->quantity)
+                {
+                    $sverka->quantity=$sverka->quantity-$quantity;
+                    $sverka->save();
+                }
+                  $sum=round($summa-$money2-$virtual-$discount,2);
+
+               if ($postponed!=1) $row->delete();
+
+            }
+
+
+
+        echo "sum". $sum;
+		$usd=$usd-$money2;
+        if ($postponed!=1 && Yii::$app->session->get('id_client')!=1 ) {
+			 
+            $dclient=new Dclient();
+            
+              if ($money2+$virtual>=$summa)      
+              {
+                  $dclient->sum=$summa;
+                  $dclient->debt=0;
+                  if ($kassa == 1)  $dclient->bonus=$virtual;
+              }
+              else
+              {		  
+                 if ($kassa != 1) $dclient->sum=$money2+$virtual;
+                 else $dclient->sum=$money2;
+                  $dclient->debt=$sum;
+                 if ($kassa == 1)  $dclient->bonus=$virtual;
+                 
+              }
+           
+
+            $dclient->number=$max;
+            $dclient->id_client=Yii::$app->session->get('id_client');;
+            $dclient->datetime=date("Y-m-d H:i:s");
+            //$dclient->date_return=$date;
+            $dclient->save();
+    
+
+			
+          
+		}
+        if (Yii::$app->session->get('id_bonus') &&  Yii::$app->session->get('id_bonus')!=Yii::$app->session->get('id_client'))
+        {
+            $dclient=new Dclient();
+            $dclient->sum = 0;
+            $dclient->debt = 0;
+            $dclient->number=$max;
+            $dclient->id_client=Yii::$app->session->get('id_bonus');;
+            $dclient->datetime=date("Y-m-d H:i:s");
+            if ($kassa == 1)  $dclient->bonus=$virtual;
+            $dclient->save();
+        }
+       	if ($postponed!=1 && $discount>0)
+			{
+			
+			$cost = new Discount();
+			$cost->number = $max;
+			$cost->sum = $discount;
+			$cost->datetime=date("Y-m-d H:i:s");
+			$cost->save();
+			
+			}
+            if ($kassa ) {
+                $cost = new Costs();
+                  $cost->id_kassa = $kassa;
+               /* if (Yii::$app->session->get('id_client')==1) 
+                        {
+                            if ($money2) $cost->sum = $money2;
+                                else $cost->sum = $summa;
+                        }
+                else */
+                $cost->sum = $virtual;
+                $cost->fid = $max;
+                $cost->id_type = 3;
+                $cost->id_client = Yii::$app->session->get('id_bonus');
+                $cost->id_user = Yii::$app->user->identity->id_user;
+                $cost->datetime=date("Y-m-d H:i:s");
+                $cost->save();
+              
+    
+            }
+    
+
+            if (Yii::$app->session->get('id_bonus') && Client::findOne(["id_client" =>Yii::$app->session->get('id_bonus')])->barcode)
+            {
+                $bonus =  Bonus::find()->where(['status' =>1])->one();
+                if ($bonus->par1) 
+                    {
+                        $bonus_sum = $summa*$bonus->par1/100;
+                    }
+                else {
+                        $bonus_sum = (int)($summa/$bonus->par2)*$bonus->par3;  
+                }
+                $cost = new Costs();
+                $cost->id_kassa = 1;
+                $cost->sum = $bonus_sum;
+                $cost->fid = $max;
+                $cost->id_type = 4;
+                $cost->id_client = Yii::$app->session->get('id_bonus');
+                $cost->id_user = Yii::$app->user->identity->id_user;
+                $cost->datetime=date("Y-m-d H:i:s");
+                $cost->save();
+            
+            }
+            Yii::$app->session->set('id_client', 1);
+         Yii::$app->session->set('client', "Müştəri");
+
+         Yii::$app->session->remove('id_bonus');
+         Yii::$app->session->remove('bonus');
+    }
+	public function  actionDeleteClient()
+	{
+		 Yii::$app->session->set('id_client', 1);
+         Yii::$app->session->set('client', "Müştəri");
+		 $model = new Sell2();
+         $model->updateAll(['id_client'=>NULL], ['sold' => 0,'id_user' =>Yii::$app->user->identity->id_user,'postponed'=>0]);
+
+		 return $this->redirect(['index']);
+		
+	}
+	
+	public function  actionDeleteBonus()
+	{
+		 Yii::$app->session->remove('id_bonus');
+         Yii::$app->session->remove('bonus');
+		 
+		 return $this->redirect(['index']);
+		
+	}
+	public function actionClear()
+	{
+		
+		foreach (Barcodep::find()->all() as $barcode)
+		{
+			$product=Product::find()->where(["id"=>$barcode->id_product])->one();
+			if ($product->id) continue;
+			else $barcode->delete();
+			
+			
+		}
+		
+		
+	}
+	public function actionBonusSum($id=NULL)
+    {
+        if (!$id) $id =  Yii::$app->session->get('id_bonus');
+		if ($id){
+        $prixod = Costs::find()->select("sum(sum) as sum")->where(['id_client' => $id,'id_kassa' =>1,'id_type' =>4])->one()->sum;
+        $rasxod = Costs::find()->select("sum(sum) as sum")->where(['id_client' => $id,'id_kassa' =>1,'id_type' =>3])->one()->sum;
+        $itog = round($prixod - $rasxod,2);}
+        return $itog;
+    }
+	/*public function actionTest()
+	{
+	foreach (Dclient::find()->select("count(id) as id,number, sum(sum) as sum")->andWhere("(sum<0 || debt<0) and number  IS NOT NULL")->groupBy("number")->having("count(id) >1")->all() as $dclient)
+		{
+			$count = 1;
+			foreach (Dclient::find()->where(["number" => $dclient->number])->all() as $row) 
+			{
+				
+				if ($count == $dclient->id) 
+							{
+								$row->debt = -round(($dclient->sum + $row->debt),3);
+								$row->save();
+								break;
+							
+							}
+				else {
+						$row->delete();
+						$count++;
+				}
+				
+			}
+			
+		}
+		/*foreach (Dclient::find()->andWhere("debt>=0")->all() as $dclient)
+		{
+			
+			$sum=Sell::find()->select("sum(sum) as sum")->where(["number"=>$dclient->number])->one()->sum;
+			if ($sum) $sum=abs(round($sum-$dclient->debt,2));
+			else $sum=0;
+			$dclient->sum=$sum;
+			
+			$dclient->save();
+		}
+		foreach (Sell::find()->select("sum(sum) as sum,number,datetime,id_client")->groupBy("number")->all() as $sell)
+		{
+			$dclient=Dclient::find()->where(["number"=>$sell->number])->one();
+			if ($dclient->id) continue;
+			
+            $dclient=new Dclient();
+            $dclient->sum=$sell->sum;
+			$dclient->debt=0;
+            $dclient->number=$sell->number;
+            $dclient->id_client=$sell->id_client;
+            $dclient->datetime=$sell->datetime;
+			//$dclient->date_return=$date;
+            $dclient->save();
+			
+		}
+		
+		foreach (Arrival::find()->select("sum(sum) as sum,number,datetime,id_contr,id_user")->groupBy("number")->all() as $sell)
+		{
+			$dclient=Debt::find()->where(["number"=>$sell->number])->one();
+			if ($dclient->id) continue;
+			  $debt = new Debt();
+            $debt->id_user = $sell->id_user;
+			$debt->debt =$sell->sum;
+            $debt->datatime = $sell->datetime;;
+            $debt->number = $sell->number;
+            $debt->id_contr = $sell->id_contr;;
+            $debt->discount = 0;
+            $debt->save();
+			
+       
+			
+		}
+		
+		
+	}
+    */
+	
+	public function actionTest()
+	{
+		$sum = 0;
+		foreach (Sell::find()->select("sum(quantity) as quantity,id_product")->groupBy("id_product")->all() as $sell)
+		{
+				$sum =$sum + $sell->quantity;
+            $arrival = Arrival::find()->select("sum(rest) as rest,sum(quantity) as quantity,id_product")->where(["id_product"=>$sell->id_product])->one();
+			$return = ReturnArrival::find()->select("sum(quantity) as quantity,id_product")->where(["id_product"=>$sell->id_product])->one();
+			$rest =$rest + $arrival->rest ;
+				$quantity =$quantity + $arrival->quantity ;
+			//if ($arrival->quantity + $return->quantity - $sell->quantity !=   $arrival->rest) 
+				echo $sell->id_product."$arrival->quantity - $sell->quantity =($rest) $arrival->rest<br>";
+		}
+		
+		echo $sum."-".$rest.'-'.$quantity;
+		
+	}
+	public function actionDialog()
+    {
+        $searchModel = new DclientSearch();
+        //$searchModel->datetime = date('Y-m-d');
+		
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+     //  $searchModel->date_start = date('Y-m-d');
+      //  $searchModel->date_end = date('Y-m-d');
+        return $this->render('dclient', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+        ]);
+    }
+	
+	public function actionDclientPrint()
+    {
+		$searchModel = new DclientSearch();
+		$dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+		$dataProvider->query->andWhere("debt_sum >0");
+        return $this->render('dclient_print', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+        ]);
+    }
+
+    public function actionDialog1($number)
+    {
+        $searchModel = new DclientSearch();
+        $searchModel->number=$number;
+        //$searchModel->datetime = date('Y-m-d');
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+        return $this->render('dclient', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+        ]);
+    }
+    public function actionMpdf()
+    {
+
+        $searchModel = new Sell2Search(['sold' => 0,'id_user'=> Yii::$app->user->identity->id_user]);
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams, 'received');
+        $client=Client::find()->where(['id_client' =>   Yii::$app->session->get('id_client')])->one();
+        $sum=Sell::find()->select('sum(sum) as sum,number,datetime,date_issue')->where(['sold' => 0,'id_user'=> Yii::$app->user->identity->id_user])->one();
+        $user=Users::find()->where(["id_user"=>Yii::$app->request->get('user')])->one()->fio;
+
+        $pdf = new Pdf([
+            'mode' => Pdf::MODE_UTF8, // leaner size using standard fonts
+            'orientation' => Pdf::ORIENT_LANDSCAPE,
+            'marginTop' => "0px",
+            'marginLeft' => "3px",
+            'marginRight' => "3px",
+            'content' => $this->renderPartial('print', [
+                // 'searchModel' => $searchModel,
+                'dataProvider' => $dataProvider,
+                'client' => $client,
+                'money' => Yii::$app->request->get('money'),
+                'sum' => $sum->sum,
+                'number' => $sum->number,
+                'date' => Yii::$app->request->get('date'),
+                'date_issue' => Yii::$app->request->get('issue'),
+                'user' =>$user,
+            ]),
+            'options' => [
+                'title' => 'MARKET',
+                //'subject' => 'Generating PDF files via yii2-mpdf extension has never been easy',
+
+            ],
+            'methods' => [
+                // 'SetHeader' => ['Generated On: ' . date("r")],
+                'SetFooter' => false,
+                'SetJS' =>'this.print();'
+            ]
+        ]);
+
+
+        return $pdf->render();
+    }
+    public function actionPrint($money,$discount,$user,$kassa,$virtual)
+    {
+		$discount = 0;
+        $searchModel = new Sell2Search(['sold' => 0,'id_user'=> Yii::$app->user->identity->id_user,'postponed'=>0]);
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams, 'received');
+        $sum=Sell2::find()->select('sum(sum) as sum,number,datetime,user_issue')->where(['sold' => 0,'id_user'=> Yii::$app->user->identity->id_user, 'postponed'=>0])->one();
+		$sum->sum = round($sum->sum,2);
+		$debt=Dclient::find()->select("sum(debt) as sum")->where(["id_client"=>Yii::$app->session->get('id_client')])->one();
+		if ($debt) $debt=$debt->sum;
+		
+		foreach ( Sell2::find()->where(['sold' => 0,'id_user'=> Yii::$app->user->identity->id_user, 'postponed'=>0])->all() as $model)
+		{
+			$discount = $discount + $model->quantity*( $model->getPriceSell() - $model->price) ;
+			
+		}
+		
+        return $this->renderAjax('print',[
+            'dataProvider' => $dataProvider,
+            'money' => $money,
+            'sum' => $sum->sum,
+			'user' => $user,
+            'number' => $sum->number,
+			'kassa' => $kassa,
+			'virtual' => $virtual,
+			'client'=>Yii::$app->session->get('id_client'),
+			'debt'=>round($debt,2),
+			'discount' => $discount,
+        ]);
+
+    }
+	
+	public function actionPrintReturn()
+	
+	{
+		
+		 $searchModel = new Sell2Search(['sold' => 0,'id_user'=> Yii::$app->user->identity->id_user,'postponed'=>0]);
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams, 'received');
+   
+        return $this->renderAjax('print_return',[
+            'dataProvider' => $dataProvider,
+            
+        ]);
+		
+	}
+	 public function actionPrint2($number)
+    {
+        $searchModel = new SellSearch();
+		$searchModel->number=$number;
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+		
+        $sum=Sell::find()->select('sum(sum) as sum,number,datetime,id_client')->where(['number' => $number])->one();
+		$id = $sum->id_client;
+		$debt=Dclient::find()->select("sum(debt) as debt")->where("(number!=$number  or number IS NULL) and id_client=$id")->one();
+		
+		$current=Dclient::find()->andWhere("number=$number")->andWhere(['id_client'=>$sum->id_client])->one();
+
+        return $this->renderAjax('print2',[
+            'dataProvider' => $dataProvider,
+            'money' => $money,
+            'sum' => $sum->sum,
+			'current' =>  $current,
+            'number' => $sum->number,
+			'client'=>$sum->id_client,
+			'debt'=>round($debt->debt,2),
+			'date'=>$sum->datetime,
+        ]);
+		
+		
+
+
+    }
+	
+	
+	public function actionPrintPayment($id,$sum)
+    {
+    $dclient=Dclient::find()->select("sum(debt) as sum")->where(["id_client"=>$id])->one()->sum;
+	
+	
+	$debt_new=$dclient-$sum;
+        return $this->renderAjax('print_paym',[
+           
+            'id' => Yii::$app->request->get('id'),
+            'debt' => round($dclient,2),
+			'sum'=>Yii::$app->request->get('sum'),
+			'debt_new' =>round($debt_new,2)
+           
+        ]);
+
+    }
+	 public function actionDclientAdd()
+    {
+        $model = new Dclient();
+        if (Yii::$app->request->post()) {
+            $dclient = Yii::$app->request->post("Dclient");
+
+      
+            $model->id_client = $dclient['id_client'];
+			
+			$model->debt = $dclient['debt'];
+		
+			$model->datetime = date("Y-m-d H:i:s");
+
+           if($dclient['debt']>0) $model->save();
+			return $this->redirect(['dialog']);
+        }
+        else {
+            
+            return $this->renderAjax('dclient_add', [
+                'model' => $model,
+            ]);
+        }
+
+    }
+    public function actionPrintPostponed(array $id)
+    {
+
+        $find=explode(",",$id[0]);
+        $searchModel = new SellSearch();
+      //  print_r($id);
+       $searchModel->id=$find;
+
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+     ///  print_r($dataProvider->query);
+        $sell=Sell::find()->where(["id" => $find])->one();
+        $client=Client::find()->where(['id_client' => $sell->id_client])->one();
+        $pdf = new Pdf([
+            'mode' => Pdf::MODE_UTF8, // leaner size using standard fonts
+            'orientation' => Pdf::ORIENT_LANDSCAPE,
+            'marginTop' => "0px",
+            'marginLeft' => "3px",
+            'marginRight' => "3px",
+            'content' => $this->renderPartial('printp', [
+              //   'searchModel' => $searchModel,
+                'dataProvider' => $dataProvider,
+                'number' => $sell->number,
+                'client' => $client
+
+            ]),
+            'options' => [
+                'title' => 'MARKET',
+                //'subject' => 'Generating PDF files via yii2-mpdf extension has never been easy',
+
+            ],
+            'methods' => [
+                // 'SetHeader' => ['Generated On: ' . date("r")],
+                'SetFooter' => false,
+                'SetJS' =>'this.print();'
+            ]
+        ]);
+
+       return $pdf->render();
+    }
+    public function actionReport()
+    {
+
+		$searchModel = new SellSearch(['sold' => '1','postponed'=>0,'returnp'=>0]);
+
+		$searchModel->date_start = date('Y-m-d');//." 00:00:00";
+		$searchModel->date_end = date('Y-m-d');//." 23:59:59";
+		$dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+		
+		$return=Returnp::find()->select("sum(price*quantity) as price")->andWhere("data>='$searchModel->date_start' AND data<='$searchModel->date_end'")->one()->price;
+		
+		if ($_GET[SellSearch][date_start]) $date_start=$_GET[SellSearch][date_start]." 00:00:00"; else 
+		  $date_start = date('Y-m-d')." 00:00:00";
+		if ($_GET[SellSearch][date_end]) $date_end =  $_GET[SellSearch][date_end]. " 23:59:59"; else 
+		  $date_end = date('Y-m-d')." 23:59:59";
+
+		$sum=Sell::find()->select("sum(sum) as sum")->andWhere("datetime>='$date_start' AND datetime<='$date_end' AND sold=1 AND 'postponed'=0 AND 'returnp'=0")->one()->sum;
+		  
+		
+		$earnings = 0;
+		foreach (Returnp::find()->andWhere("data>='$searchModel->date_start' AND data<='$searchModel->date_end'")->all() as $returnp)
+		{
+			$earnings =$earnings+ ($returnp->price - Arrival::find()
+            ->where(['id_product'=> $returnp->id_product])->orderBy("id DESC")->one()->price)   * $returnp->quantity;
+			
+		}
+		
+		$model = new Sell();
+		$sum_earnings = $model->getSumArrival($dataProvider->query,'earnings');
+        //$dataProvider=ArrivalSearch::find()->all();
+
+        return $this->render('report', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+			 'sum' => $sum,
+			 'return'  => $return,
+			 'earnings' => $earnings,
+			 'sum_earnings' => $sum_earnings
+        ]);
+    }
+	 public function actionReportTop()
+    {
+
+      $model = Sell::find()->select("id_product, sum(quantity) as quantity, price")->groupBy("id_product")->limit(50)->orderBy("quantity DESC")->all();
+
+        return $this->render('report_top', [
+            'model' => $model,
+        ]);
+    }
+	 public function actionReportM()
+    {
+
+        $searchModel = new SellSearch(['sold' => '1','postponed'=>0,'returnp'=>0]);
+
+       $searchModel->date_start = date('Y-m-d');//." 00:00:00";
+       $searchModel->date_end = date('Y-m-d');//." 23:59:59";
+       $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+        //$dataProvider=ArrivalSearch::find()->all();
+
+        return $this->render('report-m', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+        ]);
+    }
+	 public function actionReportMNum()
+    {
+
+        $searchModel = new SellNumSearch(['sold' => '1','postponed'=>0,'returnp'=>0]);
+
+       $searchModel->date_start = date('Y-m-d');//." 00:00:00";
+       $searchModel->date_end = date('Y-m-d');//." 23:59:59";
+       $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+        //$dataProvider=ArrivalSearch::find()->all();
+
+        return $this->render('report-m_num', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+        ]);
+    }
+	 public function actionReportNum()
+    {
+
+        $searchModel = new SellNumSearch(['sold' => '1','postponed'=>0,'returnp'=>0]);
+
+       $searchModel->date_start = date('Y-m-d');//." 00:00:00";
+       $searchModel->date_end = date('Y-m-d');//." 23:59:59";
+       $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+        //$dataProvider=ArrivalSearch::find()->all();
+
+        return $this->render('report_num', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+        ]);
+    }
+   public  function actionExchange($rate){
+        $exchange=Exchange::find()->one();
+        $exchange->rates=$rate;
+        $exchange->date=date("Y-m-d H:i:s");
+        $exchange->save();
+    }
+
+
+    public function actionReturn1($number)
+    {
+
+        $searchModel = new SellSearch(['sold' => '1', 'postponed'=>'0','returnp'=>0]);
+
+        $searchModel->date_start = date('Y-m-d');//." 00:00:00";
+        $searchModel->date_end = date('Y-m-d');//." 23:59:59";
+        if ($number>0) $searchModel->number=$number;
+        //  $searchModel->id_product=10;
+        //  $searchModel->id_user=5;
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+        //$dataProvider=ArrivalSearch::find()->all();
+
+        return $this->render('report', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+        ]);
+    }
+public function actionReceivedDebt($id,$sum,$note,$date,$kassa){
+ $sum2=$sum;
+ $dclient=Dclient::find()->where(["id_client" =>$id])->one();
+ $sell=Sell::find()->where(['number'=>$dclient->number])->one()->id_user;         
+			
+      	$dclient=new Dclient();
+		$dclient->debt=-$sum;
+          
+            $dclient->id_client=$id;
+			$dclient->note=$note;
+            $dclient->datetime=$date.date(" H:i:s");
+            $dclient->save();
+		  
+			
+			
+			$cost = new Costs();
+			$cost->id_kassa = $kassa;
+			$cost->sum = $sum;
+			$cost->fid = $dclient->id;
+			$cost->id_type = 1;
+			$cost->note = $note;
+			$cost->id_user = Yii::$app->user->identity->id_user;
+			$cost->datetime=date("Y-m-d H:i:s");
+			$cost->save();
+			
+			return $dclient->id;
+
+    }
+    public function actionInfoClient()
+    {
+        $searchModel = new ClientSearch();
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+        return $this->render('../move/client', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+			'id'=>Yii::$app->request->get('id')
+        ]);
+    }
+
+
+    public function actionReport1($number)
+    {
+
+
+        $searchModel = new SellSearch(['number' => $number]);
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+        //$dataProvider=ArrivalSearch::find()->all();
+        return $this->render('report', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+        ]);
+    }
+
+    public function actionType1($id)
+    {
+       // $model=TypeProduct::find()->where(["id_parent" => $id])->all();
+     return   " Grupa 2". Select2::widget([
+            'data' =>  ArrayHelper::map(TypeProduct::find()->where(['id_parent' => $id])->orderBy("name ASC")->all(), 'id', 'name'),
+            'name' => 'type2',
+            'options' => [
+                'placeholder' => 'Seçin',
+
+                'id'=>'type2',
+
+            ]
+        ]);
+    }
+
+    public function actionType2($id)
+    {
+        // $model=TypeProduct::find()->where(["id_parent" => $id])->all();
+        return   " Grupa 3". Select2::widget([
+            'data' =>  ArrayHelper::map(TypeProduct::find()->where(['id_parent' => $id])->orderBy("name ASC")->all(), 'id', 'name'),
+            'name' => 'type3',
+            'options' => [
+                'placeholder' => 'Seçin',
+
+                'id'=>'type3',
+
+            ]
+        ]);
+    }
+    public function actionType3($id)
+    {
+
+
+        return " Grupa 4" . Select2::widget([
+            'data' => ArrayHelper::map(TypeProduct::find()->where(['id_parent' => $id])->orderBy("name ASC")->all(), 'id', 'name'),
+            'name' => 'type4',
+            'options' => [
+                'placeholder' => 'Seçin',
+
+                'id' => 'type4',
+
+            ]
+        ]);
+
+    }
+    public function actionType5($id)
+    {
+
+        return   " Grupa 5". Select2::widget([
+            'data' =>  ArrayHelper::map(TypeProduct::find()->where(['id_parent' => $id])->orderBy("name ASC")->all(), 'id', 'name'),
+            'name' => 'type5',
+            'options' => [
+                'placeholder' => 'Seçin',
+
+                'id'=>'type5',
+
+            ]
+        ]);
+    }
+
+    public function actionType4($id)
+    {
+        // $model=TypeProduct::find()->where(["id_parent" => $id])->all();
+        return    Select2::widget([
+            'data' => ArrayHelper::map(Product::find()->where(["id_type" => $id])->orderBy("name ASC")->all(), 'id', 'name'),
+            'name' => 'product',
+            'options' => [
+                'placeholder' => 'Seçin',
+
+                'id'=>'product',
+
+            ]
+        ]);
+    }
+
+    public function actionCheck(){
+		foreach(Sell2::find()->where(['sold' => 0,'postponed'=>0,'id_user'=>Yii::$app->user->identity->id_user])->all() as $sell)
+		{
+			 $arrival = Arrival::find()->where(['id_product' => $sell->id_product])->orderBy(['datetime' => SORT_DESC])->one();
+			if ($sell->quantity<1) continue; 
+			if ($sell->price< $arrival->price && $sell->price!=$arrival->trade_price) return 0;
+			
+		}
+		return 1;
+    }
+    public function actionImage($group){
+        $model=Sell::find()->where(['sold' => '0','id_user'=> Yii::$app->user->identity->id_user,'group'=>$group])->all();
+
+
+        return $this->render('image', [
+            'model' => $model,
+
+
+        ]);
+
+    }
+
+
+    public function actionRest($id)
+{
+
+
+    $searchModel = new RestSearch();
+    $product=explode(',',$id);
+
+    $searchModel->id_product=$product;
+    $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+
+
+
+    return $this->renderAjax('rest', [
+        'searchModel' => $searchModel,
+        'dataProvider' => $dataProvider,
+
+    ]);
+}
+    public function actionSelectProduct($id)
+    {
+
+        $product=explode(',',$id);
+        $model=Product::find()->where(['id' =>$product])->all();
+
+        return $this->renderAjax('select', [
+            'model' => $model
+
+        ]);
+    }
+    public function actionRest1()
+    {
+
+
+        $searchModel = new RestSearch();
+
+
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+
+
+
+        return $this->render('rest', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+
+        ]);
+    }
+
+}

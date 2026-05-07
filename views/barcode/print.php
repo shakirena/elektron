@@ -1,0 +1,30 @@
+<?php
+
+use yii\helpers\Html;
+use yii\grid\GridView;
+use yii\helpers\Url;
+use yii\bootstrap\Modal;
+use yii\widgets\Pjax;
+use app\models\Arrival;
+/* @var $this yii\web\View */
+/* @var $searchModel app\models\BarcodeSearch */
+/* @var $dataProvider yii\data\ActiveDataProvider */
+
+$this->title = 'Barcodes';
+//$this->params['breadcrumbs'][] = $this->title;
+?>
+<?php
+
+  foreach ($model as $barcode) {
+	  $pricesell=Arrival::find()->where(['id_product'=>$barcode->id_product])->orderBy("id DESC")->one()->pricesell;
+	  echo "<div align='center' valign='center'  style='height:130px;'><p valign='center'><span  style='font-size:22pt'>".$barcode->idProduct->name."</span><br>
+	  ___________________________________________<br><span  style='font-size:28pt'><b>$pricesell AZN</span></b></p></div>";
+	  
+  }
+?>
+<?php
+$script = <<< JS
+window.print();
+JS;
+$this->registerJs($script);
+?>

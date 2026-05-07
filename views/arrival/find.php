@@ -1,0 +1,190 @@
+<?php
+
+use yii\helpers\Html;
+use yii\helpers\ArrayHelper;
+use \app\models\Contractor;
+use app\models\TypeProduct;
+use yii\widgets\Pjax;
+use yii\helpers\Url;
+use yii\bootstrap\Modal;
+use kartik\grid\GridView;
+use kartik\select2\Select2;
+/* @var $this yii\web\View */
+/* @var $searchModel app\models\DeviceSearch */
+/* @var $dataProvider yii\data\ActiveDataProvider */
+
+
+?>
+<div class="device-index">
+
+
+    <?php // echo $this->render('_search', ['model' => $searchModel]); ?>
+    <p>
+        <?= Html::button('<i class="glyphicon glyphicon-plus"></i> Əlavə et', ['value' => Url::to(['create-product']),'id'=>'client9', 'class' => 'btn btn-danger']) ?>
+    </p>
+    <?php $contractor = ArrayHelper::map(Contractor::find()->all(), 'id', 'name'); ?>
+
+  <?php $typeList = ArrayHelper::map(TypeProduct::find()->orderBy('name')->asArray()->all(), 'id', 'name'); ?>
+
+    <?= GridView::widget([
+        'dataProvider' => $dataProvider,
+        'filterModel' => $searchModel,
+        'tableOptions' => [
+            'style' => 'width:800px;cursor:pointer',
+            'class' => 'table-rena table-rena2',
+        ],
+        'pjax' =>true,
+        'hover'=>true,
+        'striped' =>true,
+        'rowOptions' =>
+            function ($dataProvider, $key, $index, $grid) {
+                return ['id' => $dataProvider['id'],
+						'name'=>$dataProvider['id'],
+                   //'value' => Url::to(['arrival/add']),
+                    'onClick'=>"addArrival(this.id,'$dataProvider[name]')"
+                ];
+            },
+
+        'columns' => [
+            ['class' => 'kartik\grid\SerialColumn'],
+			[
+				'attribute' =>  'name',
+				 'filterInputOptions' =>[
+                        'class' => 'form-control',
+						'id' => 'filterName'
+                    ],
+			
+			],
+			[
+				'value' => 'price',
+				'filter' => false,
+				'label' => 'price'
+			
+			],
+           [
+				'value' => 'restSklad',
+				'filter' => false,
+				'label' => 'Ostatok'
+			
+			],
+               [
+				'attribute' =>'contractor',
+                'filter' => $contractor,
+                'value' => 'cont',
+                    'filterWidgetOptions' =>[
+                        'pluginOptions'=>['allowClear'=>true],
+						
+                    ],
+                    'filterType' =>GridView::FILTER_SELECT2,
+                    'width' => '200px',
+                    'filterInputOptions' =>['placeholder'=>'Any ']
+
+
+            ],
+            [
+                'attribute' =>'id_type',
+                // 'value' => 'type.name',
+                'filter' => $typeList,
+                'value' => 'idType.name',
+                'format'=>'raw',
+
+
+
+                'filterWidgetOptions' => [
+                    'pluginOptions' => ['allowClear' => true]
+                ],
+                'filterType' => GridView::FILTER_SELECT2,
+                'width' => '200px',
+                'filterInputOptions' => ['placeholder' => 'Any type']
+            ],
+            [
+                'attribute' => 'barcode',
+                'value' => 'nameBarcode'
+            ]
+          //  'bar_code',
+
+
+        ],
+    ]); ?>
+
+</div>
+<?php
+$script = <<< JS
+/*
+function addArrival(id,name)
+{
+	var quantity=prompt("Neçə ədəd   "+name+" ?",1);
+    if (quantity) {
+
+				$.get('insert', {id:id,quantity:quantity},function(){
+						$("#filterName").val("");
+						$("#filterName").focus();
+				 });
+         }
+	
+}
+*/
+function addArrival(id,name)
+{
+
+  $("#current").modal("show")
+        .find("#modalContent1");
+      //  .load($(this).attr("arrival/add"));
+      $.get('get-pricesell', {id:id},function(date){
+        $("#id").val(id);
+		$("#name").text(name);
+        $("#quantity").val(1);
+
+        $("#usd").val(0);
+        $("#pricesell").val(date);
+         $.get('get-price', {id:id},function(date){
+                 $("#price").val(date);
+                   $.get('get-procent', {id:id},function(date){
+                        $("#proc").val(date);
+						  $.get('get-usd', {id:id},function(date){
+								$("#usd").val(date);
+								  $.get('get-usdsell', {id:id},function(date){
+										$("#usdsell").val(date);
+										 $.get('get-polka', 		{id:id},function(date){
+											$("#polka").val(date);
+											$.get('get-pack', 		{id:id},function(date){
+											$("#pack").val(date);
+											$.get('get-price-top', 		{id:id},function(date){
+												$("#price_top").val(date);
+													$.get('get-trade-price', 		{id:id},function(date){
+														$("#trade_price").val(date);
+														
+													});
+										});
+										});
+										});
+									});
+							});
+            });
+   //$.pjax.reload({container:"#grid-arrival"});
+            });
+   //$.pjax.reload({container:"#grid-arrival"});
+    });
+
+
+
+}
+
+function addArrivalReceived(quantity,price,id,pricesell,proc,pack,pricetop,polka,trade_price,pricesell_min,boxing)
+{
+   $.get('insert', {quantity:quantity,price:price,id:id,pricesell:pricesell,proc:proc,pack:pack,pricetop:pricetop,polka:polka,trade_price:trade_price,pricesell_min:pricesell_min},function(){
+   $("#current").modal("hide");
+   //$.pjax.reload({container:"#grid-arrival"});
+    });
+
+  //  alert(quantity);
+}
+
+$("#client9").click(function(){
+		$("#kartik-modal").modal("show")
+			.find("#modalContent")
+			.load($(this).attr("value"));
+});
+JS;
+$this->registerJs($script);
+?>

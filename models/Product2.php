@@ -1,0 +1,149 @@
+<?php
+
+namespace app\models;
+use yii\bootstrap\Html;
+use Yii;
+use app\models\Image;
+/**
+ * This is the model class for table "product".
+ *
+ * @property integer $id
+ * @property string $name
+ * @property integer $id_type
+ * @property string $bar_code
+ *
+ * @property Arrival[] $arrivals
+ * @property Barcode[] $barcodes
+ * @property TypeProduct $idType
+ * @property TypeProduct $idType0
+ * @property Sell[] $sells
+ */
+class Product2 extends \yii\db\ActiveRecord
+{
+    public $rest;
+    /**
+     * @inheritdoc
+     */
+    public static function tableName()
+    {
+        return 'product';
+    }
+	public static  function getDb() {
+		return \Yii::$app->db2;
+	}
+    /**
+     * @inheritdoc
+     */
+    public function rules()
+    {
+        return [
+            [['id_type','name'], 'required'],
+            [['id_type','boxing'], 'integer'],
+            [['name'], 'string', 'max' => 255],
+          
+			[['country'], 'string', 'max' => 255],
+            [['id_type'], 'exist', 'skipOnError' => true, 'targetClass' => TypeProduct::className(), 'targetAttribute' => ['id_type' => 'id']],
+            [['id_type'], 'exist', 'skipOnError' => true, 'targetClass' => TypeProduct::className(), 'targetAttribute' => ['id_type' => 'id']],
+        ];
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function attributeLabels()
+    {
+        return [
+            'id' => 'Kod',
+            'name' => 'Malın adı',
+            'id_type' => 'Mal grupu',
+            'barcode' => 'Barkodu',
+			 'country' => 'Ölkə',
+			' boxing'=>'Blok'
+
+        ];
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getArrivals()
+    {
+        return $this->hasMany(Arrival::className(), ['id_product' => 'id']);
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getBarcodes()
+    {
+        return $this->hasMany(Barcodep::className(), ['id_product' => 'id']);
+    }
+   /* public function getBarCode()
+    {
+        return $this->hasMany(Barcodep::className(), ['id_product' => 'id']);
+    }*/
+    public function getNameBarcode()
+    {
+        $bar='';
+        foreach (Barcodep::find()->where(["id_product" =>$this->id])->all() as $barcode)
+        {
+            $bar.=$barcode->name.',';
+        }
+        $bar=rtrim($bar,',');
+        return $bar;
+    }
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getIdType()
+    {
+        return $this->hasOne(TypeProduct::className(), ['id' => 'id_type']);
+    }
+    public function getIdContr()
+    {
+        return $this->hasOne(Contractor::className(), ['id' => 'id_contr']);
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getIdType0()
+    {
+        return $this->hasOne(TypeProduct::className(), ['id' => 'id_type']);
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getSells()
+    {
+        return $this->hasMany(Sell::className(), ['id_product' => 'id']);
+    }
+	public function getCont()
+	{
+		  $model= Arrival::find()
+            ->select("id_contr")
+			->where(["id_product"=>$this->id])
+			->orderBy('id DESC')
+            ->one();
+			$name=Contractor::find()->where(["id"=>$model->id_contr])->one()->name;
+        return $name;
+		
+	}
+    public function getRestSklad()
+    {
+       $model= Arrival::find()
+            ->select("sum(rest) as sum")
+            ->where(["id_store" => Yii::$app->session->get("sverka"),'id_product' => $this->id])
+            ->one();
+        return $model->sum;
+    }
+	public function getGetPhoto()
+	{
+		
+		$path=Image::find()->where(["id_tre" =>  $this->id])->one();
+		
+		return  Html::img(Yii::getAlias('@web')."/". $path->thumb);
+
+	}
+}

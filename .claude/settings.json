@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(gh *)",
+      "Bash(php *)",
+      "Bash(composer *)",
+      "Bash(php composer.phar *)",
+      "Bash(./yii *)",
+      "Bash(php yii *)",
+      "Bash(codecept *)",
+      "Bash(docker *)",
+      "Bash(docker-compose *)",
+      "Bash(docker compose *)",
+      "Bash(grep *)",
+      "Bash(find *)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(curl *)",
+      "mcp__github__*"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(git push --force)"
+    ]
+  }
+}

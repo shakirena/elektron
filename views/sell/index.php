@@ -1,0 +1,480 @@
+<?php
+
+use yii\helpers\Html;
+use yii\helpers\Url;
+use yii\bootstrap\Modal;
+use yii\widgets\Pjax;
+use yii\helpers\ArrayHelper;
+use kartik\grid\GridView;
+use kartik\date\DatePicker;
+use app\models\Client;
+use app\models\Store;
+use app\models\Contractor;
+use app\models\Product;
+use app\models\Users;
+use kartik\select2\Select2;
+use app\models\TypeProduct;
+use app\models\Kassa;;
+use app\components\PushAll;
+/* @var $this yii\web\View */
+/* @var $searchModel app\models\SellSearch */
+/* @var $dataProvider yii\data\ActiveDataProvider */
+
+//$this->params['breadcrumbs'][] = $this->title;
+if (  Yii::$app->user->identity->id_role==1)  $role=0;
+
+else $role=1;
+
+
+?>
+<div class="sell-index" xmlns="http://www.w3.org/1999/html">
+    <br>
+    <div class="noprint">
+    <div class="btn-group">
+    <?= Html::input("text",'barcode','',['id'=>'barcode','size'=>'25', 'class' => 'form-control','onChange' => 'addSellBarcode($("#barcode").val())'])?>
+    </div>
+    <div class="btn-group">
+    <?= Html::button('<i class="glyphicon glyphicon-search"></i>Axtarış', ['value' => Url::to(['sell/find']), 'class' => 'btn btn-danger', 'id' => 'sell_dialog']) ?>
+        </div>
+	<?php
+		if (  Yii::$app->user->identity->id_role!=1) {
+		?>
+     <div class="btn-group">
+        <?= Html::button('<i class="glyphicon glyphicon-usd"></i>Borc ödənişi', ['value' => Url::to(['sell/dialog']), 'class' => 'btn btn-success', 'id' => 'dclient']) ?>
+
+    
+	 </div> 
+		<?php } ?>
+     <div class="btn-group">
+        <?= Html::button('<i class="glyphicon glyphicon-time"></i> Gözləmədə (F6)', ['value' => Url::to(['sell/postponed']), 'class' => 'btn btn-info', 'id' => 'postponed_dialog']) ?>
+
+    </div>
+
+
+    <div class="btn-group">
+        <?= Html::button('<i class="glyphicon glyphicon-user"></i>Müştəri', ['value' => Url::to(['sell/client']), 'class' => 'btn btn-warning', 'id' => 'client_dialog']) ?>
+    </div>  
+
+		<?php if ($model->id_client) {
+										Yii::$app->session->set('id_client',$model->id_client);
+										Yii::$app->session->set('client',Client::find()->where(['id_client'=>$model->id_client])->one()->fio);
+									}?>
+	
+    <span style="margin-left:10pt;font-size: 13pt; color: red; text-decoration: double"> <b><?= Yii::$app->session->get('client')?></span> </b><a href="delete-client"><i class="glyphicon glyphicon-remove"></i></a> / <span style="font-size: 10pt; color: green; text-decoration: double"><b> Bonus:<a href="delete-bonus"><i class="glyphicon glyphicon-remove"></i></a> </b><?= Yii::$app->session->get('bonus')?></span><span id="bonus-show"> (<?= $bonus ?> bonus)</span>
+
+    </div>
+    <br>
+    </div>
+    <?php
+	Modal::begin([
+       // 'header' => '<h4>Find device</h4>',
+        'options' => [
+            'id' => 'login-modal',
+            'tabindex' => '-1',
+        ],
+
+        'size' => 'modal-sm',
+
+    ]);
+
+    echo '<div id="loginContent"></div>';
+	Modal::end();
+    Modal::begin([
+        // 'header' => '<h4>Find device</h4>',
+        'options' => [
+            'id' => 'sell-modal',
+            'tabindex' => true,
+
+        ],
+
+
+
+    ]);
+
+    echo '<div id="modalContent"></div>';
+
+    Modal::end();
+    Modal::begin([
+        // 'header' => '<h4>Find device</h4>',
+        'options' => [
+            'id' => 'chek',
+            'tabindex' => true,
+			'class'=>'rena_dialog'
+
+        ],
+
+
+
+    ]);
+
+    echo '<div id="chekContent"></div>';
+
+    Modal::end();
+
+    Modal::begin([
+        // 'header' => '<h4>Find device</h4>',
+        'options' => [
+            'id' => 'client-modal',
+            'tabindex' => true,
+        ],
+
+        'size' => 'modal-lg',
+
+    ]);
+
+    echo '<div id="clientContent1"></div>';
+   echo '<div id="clientContent"></div>';
+    Modal::end();
+	
+
+	
+    Modal::begin([
+        'header' => '<h2>Yeni müştəri  yarat</h2>',
+        'id' => 'client-create',
+        'size' => 'modal-sm',
+
+    ]);
+
+    echo '<div id="clientContent1"></div>';
+
+    Modal::end();
+    Modal::begin([
+        // 'header' => '<h4>Find device</h4>',
+        'options' => [
+            'id' => 'dclient-modal',
+            'tabindex' => true,
+        ],
+
+        'size' => 'modal-lg',
+
+    ]);
+
+    echo '<div id="dclientContent"></div>';
+
+    Modal::end();
+    //--------------------------------
+    Modal::begin([
+        // 'header' => '<h4>Find device</h4>',
+        'options' => [
+            'id' => 'return-modal',
+            'tabindex' => true,
+        ],
+
+        'size' => 'modal-lg',
+
+    ]);
+
+    echo '<div id="returnContent"></div>';
+
+    Modal::end();
+
+    Modal::begin([
+        // 'header' => '<h4>Find device</h4>',
+        'options' => [
+            'id' => 'postponed-modal',
+            'tabindex' => true,
+
+
+        ],
+        'size' => 'modal-rena-lg',
+
+
+
+    ]);
+
+    echo '<div id="postponedContent"></div>';
+
+    Modal::end();
+	  $i=0;
+    ?>
+    <div class="row noprint" >
+     <?php Pjax::begin(['id' => 'grid-arrival' ]); ?>
+      
+    <div class="col-md-9" >
+
+    <?= GridView::widget([
+        'dataProvider' => $dataProvider,
+       // 'filterModel' => $searchModel,
+        'tableOptions' => [
+            'style'=>'width:90%;font-size:10pt',
+            'class' => 'table-rena table-rena2',
+
+        ],
+
+
+        'columns' => [
+            ['class' => 'kartik\grid\SerialColumn'],
+        /*    [
+
+                'label' =>'Info',
+                'value' => 'getImage',
+                'format' => 'raw',
+
+            ],*/
+            [
+
+                'label' =>'Malın adı',
+
+                'value' => 'nameProduct',
+                'filterWidgetOptions' => [
+                    'pluginOptions' => ['allowClear' => true]
+                ],
+                'filterType' => GridView::FILTER_SELECT2,
+                'width' => '550px',
+				 'format' => 'raw',
+                'filterInputOptions' => ['placeholder' => 'Any type']
+            ],
+            [
+                'attribute' => 'quantity',
+                'label' =>'Say',
+                'width' => '60px',
+                'format' => 'raw',
+                'value' => function ($model, $index, $widget){
+                          
+                    return Html::input('text', 'quantity[]', $model->quantity, ['class' => 'form-control input-sm','style' => 'width:60px !important', 'size' => '2', 'onChange' => "editQuantity($model->id,this.value)"]);
+                }
+            ],
+
+      
+          [
+                'attribute' => 'price',
+                'label' => 'Qiymeti <br>  (AZN)',
+				'encodeLabel' => false,
+                'width' => '40px',
+                'format' => 'raw',
+                'value' => function ($model, $index, $widget)  use (&$i)  {
+					   $i++;
+                    return Html::input('text', 'price[]', $model->price, ['class' => 'form-control', 'style' => 'width:60px !important','size' => '2','id'=>"price".$i, 'onChange' => "editPrice($model->id,this.value)"]);
+                }
+            ],
+			[
+                'attribute' => 'sum',
+                'width' => '80px',
+                'contentOptions' =>  function ($model, $index, $widget)    {
+                  return  ['id' => 'sum'.$model->id];
+                },
+            ] ,
+		 [
+               
+                'label' => 'Topdan<br>satiş',
+                'width' => '60px',
+				'encodeLabel' => false,
+                'format' => 'raw',
+				'value' => 'priceOpt'
+            ],
+			 [
+
+                'label' => 'Gəliş <br> qiyməti <br> AZN',
+                'width' => '60px',
+                'format' => 'raw',
+                'encodeLabel' => false,
+				
+				'value'=> function ($model,$index,$widget)
+				{
+					return "<span id=$model->id>"."</span>".Html::button('Show',['id'=>"show_$model->id",'onclick'=>"showPrice($model->valuePriceAr,$model->id)"]).Html::button('Hide',['id'=>"hid_$model->id",'style'=>'visibility:hidden','onclick'=>"hidePrice($model->valuePriceAr,$model->id)"]);
+					
+				}
+                //'value' => 'valuePriceAr',
+				
+            ],
+			[
+                'attribute' => 'sn',
+                'label' =>'S/N',
+                'width' => '120px',
+                'format' => 'raw',
+                'value' => function ($model, $index, $widget){
+                          
+                    return Html::input('text', 'sn []', $model->sn, ['class' => 'form-control input-sm', 'onChange' => "editSn($model->id,this.value)"]);
+                }
+            ],
+              [
+                'label'=> 'Ədədin <br>qyiməti',
+                'encodeLabel' => false,
+                'value' => 'priceTop'
+            ],
+
+            [
+                'label'=> 'Qutuda <br>ədəd sayi',
+                'encodeLabel' => false,
+                'value' => 'pack'
+            ],
+
+       
+			
+            [
+                'label' => 'Anbarda <br> sayı',
+                'value' => 'sumCount',
+                'encodeLabel' => false,
+            ],
+		
+
+           
+
+            ['class' => 'kartik\grid\ActionColumn', 'template' => '{delete}'],
+        ],
+            // 'debt',
+
+    ]); ?>
+
+</div>
+
+
+<div class="col-md-2" style="margin-top:-5em;margin-left:40px">
+	<? if (!$model->id_store) $store= 1; else $store=$model->id_store;?>
+	    <?=" <b>Anbar</b>". Select2::widget([
+        'data' => ArrayHelper::map(Store::find()->all(), 'id', 'name'),
+        'name' => 'store',
+		'value'=>$store,
+        'options' => [
+            'placeholder' => 'Seçin',
+
+            'id'=>'store2',
+
+        ]
+    ]); ?>
+	<br>
+	<?php  if (!$user) $user=Yii::$app->user->identity->id_user;?>
+	    <?=" <b>Satıcı</b>". Select2::widget([
+        'data' => ArrayHelper::map(Users::find()->all(), 'id_user', 'fio'),
+        'name' => 'user',
+		'value'=>$user,
+        'options' => [
+            'placeholder' => 'Seçin',
+
+            'id'=>'user',
+
+        ]
+    ]); ?>
+      <?php Pjax::begin(['id' => 'grid-update' ]); ?>
+    
+        <div class="thumbnail" style=" background:#FFFFE4;width:280px; height:320px;font-size: 20px;  text-align:center;margin-top:15px">
+		
+        <div style=" border-bottom:solid 1px;">Yekun<br><span id="sum" style="font-size: 40px;color:#BB0000;"><?php echo round($sum, 3) ?> </span>AZN <br><span id="usd1" style="font-size: 40px;color:#BB0000;display:none"><?= round($usd,2)?></span></div>
+        <div>
+		
+            Verdi <i>(F9)</i> <input type="text" style="width: 80px; height:30px; margin-top:20px; text-align:center;" class="text ui-widget-content ui-corner-all" name="money" id="money"  />+<input id="virtual" type="text" disabled style="width:60px;height:30px;" class="text ui-widget-content ui-corner-all">
+			
+			Güzəşt <input type="text" style="width: 80px; height:30px; margin-top:20px; text-align:center;" class="text ui-widget-content ui-corner-all" name="money" id="discount"  />&nbsp &nbsp &nbsp &nbsp  &nbsp 
+			<br>
+           
+			 <?= Select2::widget([
+        'data' => ArrayHelper::map(Kassa::find()->where(["pos"=>1])->all(), 'id', 'name'),
+        'name' => 'kassa',
+        'options' => [
+			'id' => 'kassa', 
+            'onchange'=>"changePos()",
+            'placeholder' => 'Ödəniş üsulu POS / Bonus seçin',
+        ]
+    ]); ?>
+			
+            <select  style="font-size:14pt;display:none" id="rate"><option value="1">AZN</option></select>
+            Qaytarılmalıdır: <br/><span style="font-size: 40px;" id="sdacha">0</span>
+        </div>
+        </div>
+        <?php Pjax::end(); ?>
+  <!--      <?=Select2::widget([
+            'data' =>  [0=>'Malar aparılır',1 => 'Malar aparılmır'],
+            'name' => 'postponed',
+            //'hideSearch' =>true,
+            'options' => [
+                'placeholder' => 'Seçin',
+
+                'id'=>'postponed',
+
+            ]
+        ]); ?>-->
+      
+        <?="<div class='hid'> Date" .
+        DatePicker::widget([
+            'name' => 'check_issue_date',
+            'id' => 'date',
+            'value' => date("Y-m-d"),
+            'options' => ['placeholder' => 'Select issue date ...'],
+            'type' => DatePicker::TYPE_INPUT,
+            'pluginOptions' => [
+                'format' => 'yyyy-mm-dd',
+                'todayHighlight' => false
+            ]
+        ])."</div>" ;?>
+<?php 
+	
+	 if (  Yii::$app->user->identity->id_role!=1) {
+	  if (Yii::$app->session->get('id_client')!=1)
+        echo  Html::button('<i class="glyphicon glyphicon-ok"></i> <i class="glyphicon glyphicon-send"></i> OK (F8)', ['class' => 'btn btn-success','id'=>'received', 'onclick' => 'receivedSell($("#money").val(),$("#date").val(),$("#rate").val(),$("#store2").val(),$("#user").val(),1,$("#discount").val(),$("#kassa").val(),$("#virtual").val())']); 
+		else
+		  echo  Html::button('<i class="glyphicon glyphicon-ok"></i> <i class="glyphicon glyphicon-send"></i> OK (F8)', ['class' => 'btn btn-success','id'=>'received', 'onclick' => 'receivedSell($("#money").val(),$("#date").val(),$("#rate").val(),$("#store2").val(),$("#user").val(),0,$("#discount").val(),$("#kassa").val(),$("#virtual").val())']); 
+		  }
+	 ?>
+	
+         <?= Html::button('<i class="glyphicon glyphicon-ok"></i> <i class="glyphicon glyphicon-time"></i> &nbsp ', ['class' => 'btn btn-info','id'=>'postponed1', 'onclick' => 'receivedSell2($("#money").val(),$("#date").val(),$("#rate").val(),$("#store2").val(),$("#user").val(),$("#discount").val())']); ?> 
+&nbsp &nbsp <br><br>
+        <?= Html::button('<i class="glyphicon glyphicon-remove"></i> Ləğv Et', ['class' => 'btn btn-danger', 'onclick' => 'deleteAll()']); ?>
+       
+	   <?php
+			if (  Yii::$app->user->identity->id_role!=1){
+	  
+			echo Html::button('<i class="glyphicon glyphicon-share-alt"></i> Vozrat', ['class' => 'btn btn-warning', 'onclick' => 'returnSellPassword()']); 
+			} ?>
+    </div>
+
+        <?php
+        $script = <<< JS
+
+
+ $(document).ready(function(){
+
+ $('body').keydown(function(event){
+//alert(event.which);
+ if ( event.which==120 ) $("#money").focus();
+ if ( event.which==118 ) $("#barcode").focus();	 
+
+
+  if ( event.which==119 )  { $("#received").click(); event.which=0;}
+  if ( event.which==117)  { $("#postponed_dialog").click(); event.which=0;}
+  if ( event.which==115)  { $("#postponed1").click(); event.which=0;}
+  
+		  if ( event.which==113 )  { $("#sell_dialog").click(); event.which=0;}
+		//if ( event.which==17 )  { $("#postponed1").click(); event.which=0;}
+    });
+
+
+   $('#money').keyup(function(){
+
+
+    var sdacha=$("#sum").text() - $("#money").val() - 	$("#virtual").val();
+    
+    sdacha=-sdacha.toFixed(2)
+    $("#sdacha").html(sdacha);
+
+});
+  
+});
+JS;
+        $this->registerJs($script);
+        ?>
+        <?php Pjax::end(); ?>
+    </div>
+</div>
+<?php
+$script = <<< JS
+
+ $(document).ready(function(){
+    $("#barcode").val("");
+    $("#barcode").focus();
+});
+JS;
+$this->registerJs($script);
+?>
+
+<style>
+    @media print {
+        .noprint, .modal-header {
+            content: " ";
+            display: none !important;;visibility: hidden !important;
+        }
+        .modal-content
+        {
+            border: none !important;
+        }
+    }
+</style>

@@ -1,0 +1,9 @@
+<?php
+
+return [
+    'class' => 'yii\db\Connection',
+    'dsn' => 'mysql:host=92.63.107.190;dbname=stroymataydin',
+    'username' => 'turen',
+    'password' => 'Turen20142018',
+    'charset' => 'utf8mb4',
+];

@@ -1,0 +1,208 @@
+<?php
+use yii\bootstrap\Modal;
+use yii\helpers\Html;
+use kartik\grid\GridView;
+use yii\helpers\ArrayHelper;
+use app\models\Client;
+use kartik\date\DatePicker;
+use yii\widgets\Pjax;
+use yii\helpers\Url;
+use kartik\select2\Select2;
+use app\models\Kassa;
+/* @var $this yii\web\View */
+/* @var $searchModel app\models\DclientSearch */
+/* @var $dataProvider yii\data\ActiveDataProvider */
+
+//$this->title = 'Dclients';
+//$this->params['breadcrumbs'][] = $this->title;
+?>
+
+
+    <?php
+    Modal::begin([
+        // 'header' => '<h4>Find device</h4>',
+        'options' => [
+            'id' => 'info',
+            'tabindex' => true,
+				
+        ],
+
+        'size' => '300px',
+
+    ]);
+
+    echo '<div id="modalContent"></div>';
+
+    Modal::end();
+    ?>
+	<?php
+    Modal::begin([
+        // 'header' => '<h4>Find device</h4>',
+        'options' => [
+            'id' => 'modal',
+            'tabindex' => true,
+			'class'=>'rena_dialog'
+        ],
+
+        'size' => '300px',
+
+    ]);
+
+    echo '<div id="modalDclient"></div>';
+
+    Modal::end();
+    ?>
+<div class="dclient-index noprint">
+
+    <?php $clientList = ArrayHelper::map(Client::find()->all(), 'id_client', 'fio'); ?>
+  <?= Html::button('<i class="glyphicon glyphicon-plus"></i> Əlavə et',['value' => Url::to(['sell/dclient-add']),'class' => 'btn btn-danger','id' => 'addDclient']); ?>
+      
+    <br> <br>
+    <?= GridView::widget([
+        'dataProvider' => $dataProvider,
+        'filterModel' => $searchModel,
+        'tableOptions' => [
+
+            'class' => 'table-rena table-rena3',
+            'style' => 'font-size:9pt'
+
+        ],
+		'showFooter' => true,
+        'footerRowOptions' => ['style' => 'font-weight:bold;text-decoration:underline;color:red;'],
+
+        'striped'=>true,
+        'hover'=>true,
+        'columns' => [
+            // ['class' => 'kartik\grid\SerialColumn'],
+
+
+            [
+
+                'attribute'  => 'id_client',
+                'value' =>'idClient.fio',
+                'filter' => $clientList,
+                'filterWidgetOptions' =>[
+                    'pluginOptions'=>['allowClear'=>true]
+                ],
+                'filterType' =>GridView::FILTER_SELECT2,
+                'width' => '300px',
+                'filterInputOptions' =>['placeholder'=>'Any type']
+            ] ,
+			[
+				'label'=> 'Telefon',
+				'value'=> 'getPhone'
+			],
+			[
+                'label'=>'Qalıq <br> Borc',
+                'encodeLabel' => false,
+                'value' => function($model){
+								return round($model['debt_sum'],2);
+				},
+				 'footer' =>  round($searchModel->getSumDebt($dataProvider->query),2),
+
+            ],
+            
+       /*     [
+                'label'=>'Qalıq <br> Borc ($)',
+                'encodeLabel' => false,
+                'attribute' =>  'usd',
+				 'value' => function($model){
+								return round($model['usd'],2);
+				}
+
+            ],
+*/
+          //  'sum',
+            [
+
+                'label' =>'Ödəniş',
+                'format' => 'raw',
+				 'width' => '130px',
+                'value' => function ($model, $index, $widget) {
+                    return Html::input('text', 'sum[]', 0, ['class' => '', 'size' => '3','id' => 'sum'.$model["id_client"]]).	Select2::widget([
+							'data' =>  ArrayHelper::map(Kassa::find()->where("id>1")->orderBy("id DESC")->all(), 'id', 'name'),
+							'name' => 'kassa',
+							'options' => [
+								'placeholder' => 'Seçin',
+								'id'=>'kassa'.$model["id_client"],
+
+							]
+						]);
+                }
+            ],
+            [
+
+                'label' =>'Qeyd',
+                'format' => 'raw',
+                'value' => function ($model, $index, $widget) {
+
+                    return Html::textarea( 'note[]', "", ['class' => 'form-control', 'cols' => '30','id' => 'note'.$model["id_client"]]);
+                },
+                'width' => '200px'
+            ],
+            [
+                'width' => '200px',
+                'label' =>'Tarixi',
+                'format' => 'raw',
+                'value' => function ($model, $index, $widget) {
+
+                    return    DatePicker::widget([
+                        'name' => 'check_issue_date',
+                        'id' => 'date'.$model["id_client"],
+                        'value' => date("Y-m-d"),
+                        'options' => ['placeholder' => 'Select issue date ...'],
+                        'type' => DatePicker::TYPE_INPUT,
+                        'pluginOptions' => [
+                            'format' => 'yyyy-mm-dd',
+                            'todayHighlight' => false
+                        ]
+                    ]);
+                },
+
+            ],
+
+
+            [
+
+                'label' =>'Ödə',
+                'format' => 'raw',
+                'value' => function ($model, $index, $widget) {
+
+                    return Html::button('<i class="glyphicon glyphicon-ok"></i>  Ödəmək', ['id' => 'print','class' => 'btn btn-success',  'onClick' => "debtReceivedClient($model->id_client)"]);
+                }
+            ],
+            [
+                'label' => 'Info',
+                'format' => 'raw',
+                'value' => function ($model, $index, $widget) {
+
+                    return Html::button('<i class="glyphicon glyphicon-info"></i>  Tarixçə', ['class' => 'btn btn-info',  'onClick' => "infoClient($model->id_client)"]);
+                }
+            ],
+		/*	[
+				'label'=> 'Дата возврата',
+				'value'=> 'dateReturn',
+				  'format' => 'raw',
+			]
+*/
+            // 'datetime',
+            // 'date_return',
+
+            // ['class' => 'yii\grid\ActionColumn'],
+        ],
+    ]); ?>
+
+
+</div>
+<style>
+    @media print {
+        .noprint, .modal-header {
+            content: " ";
+            display: none !important;;visibility: hidden !important;
+        }
+        .modal-content
+        {
+            border: none !important;
+        }
+    }
+</style>
