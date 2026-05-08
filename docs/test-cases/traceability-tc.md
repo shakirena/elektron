@@ -59,3 +59,33 @@
 | TC-5-007 | Static: views/arrival/report.php lines 140–144 | — |
 | TC-5-008 | Static: views/sell/find.php lines 157–163 | — |
 | TC-5-009 | Static: views/arrival/find.php lines 104–110 | — |
+
+## Feature #13 — Фильтр article_number в отчётах
+
+| Feature | Story | AC | TC | Priority | Type | E2E Automated |
+|---------|-------|----|----|----------|------|---------------|
+| Feature #13 | #14 | article_number в safe rules SellSearch | TC-13-001 | High | Unit | No |
+| Feature #13 | #14 | SellSearch LIKE product.article_number filter | TC-13-001 | High | Unit | No |
+| Feature #13 | #14 | sell/report.php attribute article_number | TC-13-001 | High | Static/UI | No |
+| Feature #13 | #14 | Пустой фильтр — все записи (sell) | TC-13-002 | High | Unit | No |
+| Feature #13 | #15 | article_number в safe rules ArrivalSearch | TC-13-003 | High | Unit | No |
+| Feature #13 | #15 | ArrivalSearch LIKE product.article_number filter | TC-13-003 | High | Unit | No |
+| Feature #13 | #15 | arrival/report.php attribute article_number | TC-13-003 | High | Static/UI | No |
+| Feature #13 | #15 | Пустой фильтр — все записи (arrival) | TC-13-004 | High | Unit | No |
+| Feature #13 | #16 | article_number в safe rules RestSearch | TC-13-006 | High | Unit | No |
+| Feature #13 | #16 | RestSearch LIKE product.article_number filter | TC-13-006 | High | Unit | No |
+| Feature #13 | #16 | arrival/rest.php колонка Artikul nomresi видна | TC-13-005 | Medium | Static/UI | No |
+| Feature #13 | #16 | arrival/rest.php attribute article_number | TC-13-006 | High | Static/UI | No |
+| Feature #13 | #14/#15/#16 | Фильтр без совпадений — пустая таблица | TC-13-007 | Medium | Error Case | No |
+
+## Feature #13 Unit Test Mapping
+
+| TC | Unit Test File | Test Method |
+|----|---------------|-------------|
+| TC-13-001 | ArticleNumberFilterTest.php | testSellSearchArticleNumberInSafeRules, testSellSearchContainsArticleNumberLikeFilter, testSellReportViewContainsArticleNumberAttribute |
+| TC-13-002 | ArticleNumberFilterTest.php | testSellSearchArticleNumberIsNotInNumericRule |
+| TC-13-003 | ArticleNumberFilterTest.php | testArrivalSearchArticleNumberInSafeRules, testArrivalSearchContainsArticleNumberLikeFilter, testArrivalReportViewContainsArticleNumberAttribute |
+| TC-13-004 | ArticleNumberFilterTest.php | testArrivalSearchArticleNumberIsNotInNumericRule |
+| TC-13-005 | ArticleNumberFilterTest.php | testRestViewContainsArticleNumberColumnAndAttribute |
+| TC-13-006 | ArticleNumberFilterTest.php | testRestSearchArticleNumberInSafeRules, testRestSearchContainsArticleNumberLikeFilter, testRestViewContainsArticleNumberColumnAndAttribute |
+| TC-13-007 | Static: andFilterWhere LIKE verified in all three Search models | — |
