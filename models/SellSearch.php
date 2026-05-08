@@ -20,6 +20,7 @@ class SellSearch extends Sell
     public $type;
     public $status;
     public $barcode;
+    public $article_number;
     /**
      * @inheritdoc
      */

@@ -18,6 +18,7 @@ class ArrivalSearch extends Arrival
 	public $type_name;
     public $name_product;
 	public $barcode;
+    public $article_number;
     /**
      * @inheritdoc
      */

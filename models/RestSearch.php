@@ -19,6 +19,7 @@ class RestSearch extends Arrival
     public $sumsell;
 	public $barcode;
     public $name_product;
+    public $article_number;
     /**
      * @inheritdoc
      */
