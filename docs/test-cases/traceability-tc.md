@@ -1,7 +1,7 @@
 # Test Case Traceability Matrix
 
 *Инициализировано: 2026-05-07*
-*Обновлено: 2026-05-08 (Bug #1 — stories #2, #3, #4)*
+*Обновлено: 2026-05-08 (Bug #1 — stories #2, #3, #4; Feature #5 — stories #6–#12)*
 
 | Feature | Story | AC | TC | Priority | Type | E2E Automated |
 |---------|-------|----|----|----------|------|---------------|
@@ -28,3 +28,34 @@
 | TC-004 | ActionReceivedDebtNumberTest.php | testExistingDclientWithNumberReturnsNumber, testExistingDclientNumberCastToInt, testExistingDclientWithNullNumberReturnsSentinel, testNullExistingDclientReturnsSentinel, testResultIsNeverNull, testSentinelIsZeroNotNegative |
 | TC-005 | CostsActionDeleteNullSafeTest.php | testDclientFoundDeleteIsCalled, testDclientNotFoundDeleteIsSkipped, testDclientNullDoesNotThrowFatalError |
 | TC-006 | CostsActionDeleteNullSafeTest.php | testDebtFoundDeleteIsCalled, testDebtNotFoundDeleteIsSkipped, testDebtNullDoesNotThrowFatalError, testDebtVariableIsDistinctFromDclient |
+
+## Feature #5 — Artikul nomresi
+
+| Feature | Story | AC | TC | Priority | Type | E2E Automated |
+|---------|-------|----|----|----------|------|---------------|
+| Feature #5 | #6 | article_number nullable в БД | TC-5-004 | High | Unit + Migration | No |
+| Feature #5 | #7 | article_number string max 100 | TC-5-003 | High | Unit | No |
+| Feature #5 | #7 | article_number not required | TC-5-004 | High | Unit | No |
+| Feature #5 | #7 | attributeLabel = 'Artikul nomresi' | TC-5-006 (label) | High | Unit | No |
+| Feature #5 | #8 | Форма создания — поле article_number | TC-5-001 | High | Functional | No |
+| Feature #5 | #9 | Форма редактирования — article_number сохраняется | TC-5-002 | High | Functional | No |
+| Feature #5 | #10 | Sell report — колонка Artikul nomresi | TC-5-005 | Medium | Static/UI | No |
+| Feature #5 | #10 | Sell find modal — колонка Artikul nomresi | TC-5-008 | Medium | Static/UI | No |
+| Feature #5 | #11 | Rest report — колонка Artikul nomresi | TC-5-006 | Medium | Static/UI | No |
+| Feature #5 | #12 | Arrival report — колонка Artikul nomresi | TC-5-007 | Medium | Static/UI | No |
+| Feature #5 | #12 | Arrival find modal — колонка Artikul nomresi | TC-5-009 | Medium | Static/UI | No |
+
+## Feature #5 Unit Test Mapping
+
+| TC | Unit Test File | Test Method |
+|----|---------------|-------------|
+| TC-5-001 | ProductArticleNumberTest.php | testValidArticleNumberPasses |
+| TC-5-003 | ProductArticleNumberTest.php | testOver100CharsIsInvalid, testExactly100CharsIsValid |
+| TC-5-004 | ProductArticleNumberTest.php | testNullArticleNumberIsValid, testEmptyStringArticleNumberIsValid, testArticleNumberIsNotRequired |
+| TC-5-label | ProductArticleNumberTest.php | testAttributeLabelIsArticulNomresi |
+| TC-5-rule | ProductArticleNumberTest.php | testStringRuleWithMax100Exists |
+| TC-5-005 | Static: views/sell/report.php lines 183–187 | — |
+| TC-5-006 | Static: views/sell/rest.php lines 177–182 | — |
+| TC-5-007 | Static: views/arrival/report.php lines 140–144 | — |
+| TC-5-008 | Static: views/sell/find.php lines 157–163 | — |
+| TC-5-009 | Static: views/arrival/find.php lines 104–110 | — |

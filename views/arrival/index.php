@@ -398,7 +398,7 @@ $this->registerJs($script);
 	<?php Pjax::begin(['id' => 'grid-update']) ?>
 			<p style="color:red;font-size: 30px; padding-left:10px" > <?= round($sum,2)." AZN"?></p>
 	<?php Pjax::end(); ?>
-	<? if (!$model->datetime) $date= date('Y-m-d'); else $date=$model->datetime;?>
+	<? if (!$model->datetime) $date= date('Y-m-d'); else $date=date("Y-m-d",$model->datetime);?>
 	
     <?=Html::img('../img/calendar.png')." Date" .
     DatePicker::widget([

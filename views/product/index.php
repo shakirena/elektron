@@ -60,6 +60,7 @@ $this->title = 'Products';
 				 'attribute' =>'name',
 				 'width' => '600px',
 			],
+            "article_number",
             [
                 'attribute' => 'id_type',
                 'filter' => $typeList,

@@ -55,6 +55,15 @@ use kartik\select2\Select2;
                     ],
 			
 			],
+            
+            [
+                'label'  => 'Artikul nomresi',
+                'attribute' =>'article_number',
+                'value'  => 'article_number',
+                'format' => 'raw',
+                'width'  => '120px',
+               
+            ],
 			[
 				'value' => 'price',
 				'filter' => false,
@@ -100,13 +109,6 @@ use kartik\select2\Select2;
             [
                 'attribute' => 'barcode',
                 'value' => 'nameBarcode'
-            ],
-            [
-                'label'  => 'Artikul nomresi',
-                'value'  => 'article_number',
-                'format' => 'raw',
-                'width'  => '120px',
-                'filter' => false,
             ]
           //  'bar_code',
 

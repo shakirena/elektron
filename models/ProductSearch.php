@@ -24,7 +24,7 @@ class ProductSearch extends Product
     {
         return [
             [['id', 'id_type','rest'], 'integer'],
-            [['name','barcode','contractor','type'], 'safe'],
+            [['name','barcode','contractor','type','article_number'], 'safe'],
         ];
     }
 
@@ -79,6 +79,7 @@ class ProductSearch extends Product
 
 		$query->andFilterWhere(['like', 'product.name', $this->name]);
         $query->andFilterWhere(['like', 'bar_code.name', $this->barcode]);
+        $query->andFilterWhere(['like', 'article_number', $this->article_number]);
           //  ->andFilterWhere(['like', 'bar_code', $this->bar_code]);
 
         return $dataProvider;

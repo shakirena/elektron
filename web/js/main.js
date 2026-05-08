@@ -571,7 +571,7 @@ function receivedArrival(store,contractor,date,tmp)
 					
 						setTimeout(function(){
 								$.get('received', {store:store,contractor:contractor,date:date},function(){
-								window.location.replace("index");
+								    window.location.replace("index");
 								});
 						
 						   },2000);

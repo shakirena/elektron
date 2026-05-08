@@ -94,6 +94,8 @@ class ProductController extends Controller
 
             $model->name = $product['name'];
             $model->id_type = $product['id_type'];
+            $model->article_number = $product['article_number'];
+            
 			$model->boxing = $product['boxing'];
 
 
@@ -168,6 +170,8 @@ class ProductController extends Controller
             $model->name = $product['name'];
 			$model->boxing = $product['boxing'];
             $model->id_type = $product['id_type'];
+            $model->article_number = $product['article_number'];
+            
             if ($model->save()) { //&& $model->save()
 				
                 $barcode->deleteAll(['id_product' => $id]);
