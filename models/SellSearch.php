@@ -28,7 +28,7 @@ class SellSearch extends Sell
         return [
             [[ 'id_user', 'sold', 'number', 'flag','postponed','user_issue','id_client'], 'integer'],
             [[ 'price_ar', 'discount', 'earnings', 'returnp', 'debt','usd'], 'number'],
-            [['datetime', 'date_issue','sn','date_start','date_end','type','id_product','id_store','barcode','name_product','id','name_client','status'], 'safe'],
+            [['datetime', 'date_issue','sn','date_start','date_end','type','id_product','id_store','barcode','name_product','id','name_client','status','article_number'], 'safe'],
         ];
     }
 
@@ -115,6 +115,7 @@ class SellSearch extends Sell
             ->andFilterWhere(['like', 'product.name', $this->name_product])
    // ->andFilterWhere(['like', '`client`.`fio`', $this->name_client])
             ->andFilterWhere(['like', '`bar_code`.`name`', $this->barcode]);
+        $query->andFilterWhere(['like', 'product.article_number', $this->article_number]);
         $query->andFilterWhere(['between','datetime',$this->date_start,$this->date_end]);
 
         $query->andFilterWhere(['like', 'sn', $this->sn]);

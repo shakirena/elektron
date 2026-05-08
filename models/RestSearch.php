@@ -27,7 +27,7 @@ class RestSearch extends Arrival
         return [
             [['id', 'id_user', 'id_store', 'received', 'id_contr', 'number', 'discount', 'returnp', 'rest','postponed'], 'integer'],
             [['quantity', 'price', 'usd', 'pricesell', 'sum'], 'number'],
-            [['datetime','date_start','date_end', 'id_product','type','sumsell','name_product','type_name','barcode'], 'safe'],
+            [['datetime','date_start','date_end', 'id_product','type','sumsell','name_product','type_name','barcode','article_number'], 'safe'],
         ];
     }
 
@@ -111,7 +111,8 @@ class RestSearch extends Arrival
            $query->andFilterWhere(['like', 'bar_code.name', $this->barcode]);
 		     // $query->andFilterWhere(['like', 'type_product.name', $this->type]);
             // $query->andFilterWhere(['like', 'product.name', "$this->name_product%",false]);
- $query->andFilterWhere(['like', 'product.name', $this->name_product]);			 
+ $query->andFilterWhere(['like', 'product.name', $this->name_product]);
+        $query->andFilterWhere(['like', 'product.article_number', $this->article_number]);
         return $dataProvider;
     }
 }

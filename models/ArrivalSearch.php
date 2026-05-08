@@ -26,7 +26,7 @@ class ArrivalSearch extends Arrival
         return [
             [['id', 'id_user', 'id_store', 'received', 'id_contr', 'number', 'discount', 'returnp', 'rest','postponed','transfer'], 'integer'],
 
-            [['datetime','date_start','date_end', 'id_product','type','name_product','barcode','type_name'], 'safe'],
+            [['datetime','date_start','date_end', 'id_product','type','name_product','barcode','type_name','article_number'], 'safe'],
         ];
     }
 
@@ -99,6 +99,7 @@ class ArrivalSearch extends Arrival
         ])
 		  ->andFilterWhere(['like', '`bar_code`.`name`', $this->barcode])
             ->andFilterWhere(['like', 'product.name', $this->name_product]);
+        $query->andFilterWhere(['like', 'product.article_number', $this->article_number]);
         $query->andFilterWhere(['between','datetime',$this->date_start,$this->date_end]);
         return $dataProvider;
     }
