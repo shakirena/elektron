@@ -61,12 +61,24 @@ config/          — Application config
 (Заполнить при появлении ролевой модели)
 - Текущие роли: guest, authenticated user
 
+## GitHub Repository
+
+- Repo: https://github.com/shakirena/elektron
+- Remote: origin → https://github.com/shakirena/elektron.git
+
 ## GitHub Project IDs
 
-(Заполнить после /setup-board)
-- PROJECT_ID: 
-- STATUS_FIELD_ID:
-- Status Options: (заполнить после создания Project Board)
+- PROJECT_ID: PVT_kwHOBagplc4BXEYV
+- STATUS_FIELD_ID: PVTSSF_lAHOBagplc4BXEYVzhST3EA
+- Board URL: https://github.com/users/shakirena/projects/1
+- Status Options:
+  - Backlog: db8eef0c
+  - Analysis: 446f2234
+  - Ready for Dev: 1a6aac8f
+  - In Development: 8e28ac78
+  - Testing: fcbaa431
+  - Ready to Deploy: dccb685c
+  - Done: a7553ecc
 
 ## Ключевые модули
 

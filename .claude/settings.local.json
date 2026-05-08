@@ -1,7 +1,29 @@
 {
   "permissions": {
     "allow": [
-      "Bash(powershell.exe *)"
+      "Bash(powershell.exe *)",
+      "Bash(Get-ChildItem -Path \"D:\\\\OSPanel\\\\domains\\\\elektron\" -Recurse -Filter \"*debt*\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(python -c \"import sys,json; body=json.load\\(sys.stdin\\)['body']; lines=[l for l in body.splitlines\\(\\) if any\\(k in l for k in ['Blocked by:','Depends on:','Requires:']\\)]; print\\('\\\\n'.join\\(lines\\) if lines else 'NO_DEPENDENCIES'\\)\")",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('id',''\\)\\)\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('story2 OK' if d.get\\('data'\\) else d\\)\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('story3 OK' if d.get\\('data'\\) else d\\)\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('story4 OK' if d.get\\('data'\\) else d\\)\")",
+      "Bash(where php *)",
+      "Bash(\"D:\\\\OSPanel\\\\modules\\\\php\\\\PHP_7.3-x64\\\\php.exe\" -l \"D:\\\\OSPanel\\\\domains\\\\elektron\\\\controllers\\\\SellController.php\")",
+      "Bash(\"D:\\\\OSPanel\\\\modules\\\\php\\\\PHP_7.3-x64\\\\php.exe\" -l \"D:\\\\OSPanel\\\\domains\\\\elektron\\\\controllers\\\\CostsController.php\")",
+      "Bash(\"D:\\\\OSPanel\\\\modules\\\\php\\\\PHP_7.3-x64\\\\php.exe\" -l \"D:\\\\OSPanel\\\\domains\\\\elektron\\\\tests\\\\codeception\\\\unit\\\\models\\\\ActionCancelValidationTest.php\")",
+      "Bash(\"D:\\\\OSPanel\\\\modules\\\\php\\\\PHP_7.3-x64\\\\php.exe\" -l \"D:\\\\OSPanel\\\\domains\\\\elektron\\\\tests\\\\codeception\\\\unit\\\\models\\\\ActionReceivedDebtNumberTest.php\")",
+      "Bash(\"D:\\\\OSPanel\\\\modules\\\\php\\\\PHP_7.3-x64\\\\php.exe\" -l \"D:\\\\OSPanel\\\\domains\\\\elektron\\\\tests\\\\codeception\\\\unit\\\\models\\\\CostsActionDeleteNullSafeTest.php\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d['number'], [l['name'] for l in d['labels']]\\)\")",
+      "Bash(dir D:\\\\OSPanel\\\\domains\\\\elektron\\\\docs\\\\test-cases *)",
+      "Bash(python -c \"import sys,json; data=json.load\\(sys.stdin\\); items=[i for i in data.get\\('items',[]\\) if i.get\\('content',{}\\).get\\('number'\\)==5]; print\\(json.dumps\\(items\\)\\)\")",
+      "Bash(python -c \"import sys,json; data=json.load\\(sys.stdin\\); items=[{'id':i['id'],'num':i['content']['number']} for i in data.get\\('items',[]\\)]; print\\(json.dumps\\(items\\)\\)\")",
+      "Bash(python -c \"import sys; body=sys.stdin.read\\(\\); print\\('HAS_BLOCKED_BY:', 'Blocked by:' in body or 'Depends on:' in body or 'Requires:' in body\\); print\\('BODY_LEN:', len\\(body\\)\\)\")",
+      "Bash(Get-Content \"D:\\\\OSPanel\\\\domains\\\\elektron\\\\.gitignore\")",
+      "Bash(/d/OSPanel/modules/php/PHP_7.3-x64/php.exe -l \"D:\\\\OSPanel\\\\domains\\\\elektron\\\\controllers\\\\SellController.php\")",
+      "Bash(/d/OSPanel/modules/php/PHP_7.3-x64/php.exe -l \"D:\\\\OSPanel\\\\domains\\\\elektron\\\\controllers\\\\CostsController.php\")"
     ]
   }
 }
