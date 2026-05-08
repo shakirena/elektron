@@ -1015,8 +1015,12 @@ if ($product->id_product) {
         if ($flag==1) return 0;
         else return $flag;
     }
-public function actionCancel($number){
-	
+public function actionCancel($number = null){
+	if (!$number || !is_numeric($number) || (int)$number <= 0) {
+		throw new \yii\web\BadRequestHttpException('Invalid number parameter');
+	}
+	$number = (int)$number;
+
 			foreach (Sell::find()->where(['number'=>$number])->all() as $row) {
 						$sell=new Sell2();
                        $sell->id_user=$row->id_user;
@@ -1836,13 +1840,14 @@ public function actionCancel($number){
     }
 public function actionReceivedDebt($id,$sum,$note,$date,$kassa){
  $sum2=$sum;
- $dclient=Dclient::find()->where(["id_client" =>$id])->one();
- $sell=Sell::find()->where(['number'=>$dclient->number])->one()->id_user;         
-			
+ $existingDclient=Dclient::find()->where(["id_client" =>$id])->andWhere(['>', 'debt', 0])->one();
+ $sellNumber = ($existingDclient !== null && $existingDclient->number !== null) ? (int)$existingDclient->number : 0;
+
       	$dclient=new Dclient();
 		$dclient->debt=-$sum;
-          
+
             $dclient->id_client=$id;
+			$dclient->number=$sellNumber;
 			$dclient->note=$note;
             $dclient->datetime=$date.date(" H:i:s");
             $dclient->save();

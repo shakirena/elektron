@@ -242,24 +242,28 @@ class CostsController extends Controller
     public function actionDelete($id)
     {
 		$model = $this->findModel($id);
-		if ($model->id_type==1) 
+		if ($model->id_type==1)
 		{
 			if ($model->fid)
-			{	
+			{
 				$dclient = Dclient::find()->where(["id" => $model->fid])->one();
-				$dclient->delete();
+				if ($dclient !== null) {
+					$dclient->delete();
+				}
 			}
-			else   return $this->redirect(['index']);	
+			else   return $this->redirect(['index']);
 		}
-		
-		if ($model->id_type==2) 
+
+		if ($model->id_type==2)
 		{
 			if ($model->fid)
-			{	
-				$dclient = Debt::find()->where(["id" => $model->fid])->one();;
-				$dclient->delete();
+			{
+				$debt = Debt::find()->where(["id" => $model->fid])->one();
+				if ($debt !== null) {
+					$debt->delete();
+				}
 			}
-			else   return $this->redirect(['index']);	
+			else   return $this->redirect(['index']);
 		}
         $this->findModel($id)->delete();
 
