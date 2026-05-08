@@ -94,6 +94,14 @@ use app\models\Store;
                 'width' => '350px',
 				'filterInputOptions' => ['id'=>'name','class'=>'form-control']
                 //'filterInputOptions' => ['placeholder' => 'Any type']
+            ]
+            ,
+            [
+                'attribute' => 'article_number',
+                'label'  => 'Artikul nomresi',
+                'value'  => 'product.article_number',
+                'format' => 'raw',
+                'width'  => '120px',
             ],
             [
                 'attribute' =>'type',
@@ -153,13 +161,6 @@ use app\models\Store;
 			[
                 'attribute' => 'barcode',
                 'value' => 'nameBarcode'
-            ],
-            [
-                'label'  => 'Artikul nomresi',
-                'value'  => 'product.article_number',
-                'format' => 'raw',
-                'width'  => '120px',
-                'filter' => false,
             ]
 
         ],
