@@ -22,6 +22,7 @@ if ($model->isNewRecord ) $new=1; else $new=0;
 
     <?= $form->field($model, 'name')->textInput(['maxlength' => true,]) ?>
 
+    <?= $form->field($model, 'article_number')->textInput(['maxlength' => true]) ?>
 
     <?= $form->field($model, 'id_type')->widget(Select2::className(),[
         'data' =>  ArrayHelper::map(TypeProduct::find()->all(), 'id', 'name'),

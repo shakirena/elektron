@@ -173,6 +173,13 @@ $this->title = 'Arrivals';
                 'width' => '300px',
                 //'filterInputOptions' => ['placeholder' => 'Any type']
             ],
+            [
+                'label'  => 'Artikul nomresi',
+                'value'  => function($model) { return $model->idProduct ? $model->idProduct->article_number : ''; },
+                'format' => 'raw',
+                'width'  => '120px',
+                'filter' => false,
+            ],
 
 
             [

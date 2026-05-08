@@ -153,6 +153,13 @@ use app\models\Store;
 			[
                 'attribute' => 'barcode',
                 'value' => 'nameBarcode'
+            ],
+            [
+                'label'  => 'Artikul nomresi',
+                'value'  => 'product.article_number',
+                'format' => 'raw',
+                'width'  => '120px',
+                'filter' => false,
             ]
 
         ],

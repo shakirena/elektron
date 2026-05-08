@@ -179,6 +179,12 @@ $this->title = 'Arrivals';
 				'attribute'=>'barcode',
 				'value'=>'nameBarcode'
 			],
+            [
+                'label'  => 'Artikul nomresi',
+                'value'  => 'idProduct.article_number',
+                'format' => 'raw',
+                'width'  => '120px',
+            ],
 
             [
                 'attribute' => 'quantity',

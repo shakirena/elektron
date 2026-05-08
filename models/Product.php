@@ -40,6 +40,7 @@ class Product extends \yii\db\ActiveRecord
             [['name'], 'string', 'max' => 255],
           
 			[['country'], 'string', 'max' => 255],
+            [['article_number'], 'string', 'max' => 100],
             [['id_type'], 'exist', 'skipOnError' => true, 'targetClass' => TypeProduct::className(), 'targetAttribute' => ['id_type' => 'id']],
             [['id_type'], 'exist', 'skipOnError' => true, 'targetClass' => TypeProduct::className(), 'targetAttribute' => ['id_type' => 'id']],
         ];
@@ -56,6 +57,7 @@ class Product extends \yii\db\ActiveRecord
             'id_type' => 'Mal grupu',
             'barcode' => 'Barkodu',
 			 'country' => 'Ölkə',
+            'article_number' => 'Artikul nomresi',
 			' boxing'=>'Blok'
 
         ];

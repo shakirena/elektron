@@ -137,6 +137,12 @@ $this->title = 'Arrivals';
 			'value'=>'nameBarcode'
 		],
             [
+                'label'  => 'Artikul nomresi',
+                'value'  => 'idProduct.article_number',
+                'format' => 'raw',
+                'width'  => '120px',
+            ],
+            [
                 'attribute' => 'quantity',
                 'label' =>'Miqdar',
                 'format'=>'raw',
