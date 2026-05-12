@@ -56,29 +56,33 @@ $this->title = 'Arrivals';
 									<td></td>			
 							</tr>";
 				foreach($model as $move) {
-					if ($move['debt']>0 || $move['sum']>0) {
-						
+					// FIX #19: продажи (number != null, debt >= 0) должны отображаться всегда,
+					// независимо от значений debt и sum (включая debt=0, sum=0).
+					// Ранее условие debt>0 || sum>0 скрывало продажи с нулевым долгом и нулевой оплатой.
+					$isSellEntry = ($move['number'] !== null && $move['number'] > 0 && $move['debt'] >= 0 && $move['sum'] >= 0);
+					if ($move['debt'] > 0 || $move['sum'] > 0 || $isSellEntry) {
+
 							$c=$debt;
 							$debt=round($debt+$move[debt],2);
 							$sum=round($sum+$move[sum],2);
-							
+
 							if ($move[debt]==0) $move[debt]=$move[sum];
 							else $move[debt]=$move[debt]+$move[sum]+$move[bonus];
 							$sum_debt=$sum_debt+$move[debt];
 							$bonus=Costs::find()->where(["fid" =>$move[number],'id_type' =>4, 'id_client' =>$move[id_client]])->one()->sum;
-							
+
 							$bonus_sell=Costs::find()->where(["fid" =>$move[number],'id_type' =>3])->andWhere("id_client!=$move[id_client]")->one();
 							if ($bonus_sell) $text ="(". Client::find()->where(["id_client" => $bonus_sell->id_client])->one()->fio.")";
 							else {
 							$bonus_sum = $bonus_sum + $move[bonus];
 							$bonus_current = $bonus_current + $bonus -$move[bonus];}
-							
+
 							$bonus_count = $bonus_count + $bonus;
-							
+
 							if ($move['number'])
 							 echo "<tr>
 									<td><a href='../sell/report1?number=$move[number]'> Satış (№$move[number]) $move[datetime] tarixdən</a></td>
-									<td>$move[debt]</td>	
+									<td>$move[debt]</td>
 									<td>$move[sum]</td>
 									<td>$move[bonus]</td>
 									<td></td>
@@ -86,11 +90,11 @@ $this->title = 'Arrivals';
 									<td>$bonus</td>
 									<td>$bonus_current</td>
 									<td>$move[note]</td>
-								
+
 							 </tr>";
 							else  echo "<tr>
 									<td> Pul vesayti $move[datetime] tarixdən</td>
-									<td>$move[debt]</td>	
+									<td>$move[debt]</td>
 									<td>$move[sum]</td>
 									<td>$move[bonus]</td>
 									<td></td>
@@ -98,11 +102,11 @@ $this->title = 'Arrivals';
 									<td>$bonus</td>
 									<td>$bonus_current</td>
 									<td>$move[note]</td>
-								
+
 							 </tr>";
-						
+
 					}
-					else 
+					else
 					{
 						if ($move['number']>0) {
 								
@@ -159,15 +163,38 @@ $this->title = 'Arrivals';
 				
 					echo "<tr  class='danger'>
 								<td>Итог</td>
-								<td>$sum_debt</td>	
+								<td>$sum_debt</td>
 								<td>$sum</td>
 								<td>$bonus_sum</td>
 								<td>$sum_voz</td>
 								<td>$debt</td>
 								<td>$bonus_count</td>
 								<td>$bonus_current</td>
-								<td></td>		
+								<td></td>
 								</tr>";
+
+					// FIX #19: Диагностика orphan-оплат (оплаты без привязанной продажи в таблице sell).
+					// Ищем записи Dclient с number != null, но без соответствующих строк в таблице sell.
+					$orphanPayments = \app\models\Dclient::find()
+						->where(['id_client' => $id])
+						->andWhere(['IS NOT', 'number', null])
+						->andWhere(['<', 'debt', 0])
+						->all();
+					$hasOrphan = false;
+					foreach ($orphanPayments as $op) {
+						$sellExists = \app\models\Sell::find()->where(['number' => $op->number])->exists();
+						if (!$sellExists) {
+							if (!$hasOrphan) {
+								echo "<tr class='warning'><td colspan='9'><strong>Diaqnostika: ödənişlər satış olmadan (sell cədvəlində tapılmadı)</strong></td></tr>";
+								$hasOrphan = true;
+							}
+							\Yii::warning(
+								"[report-client] Orphan payment: dclient.id={$op->id}, number={$op->number}, id_client={$op->id_client}, debt={$op->debt}, datetime={$op->datetime}",
+								'report-client'
+							);
+							echo "<tr class='warning'><td colspan='9'>Ödəniş №{$op->number} ({$op->datetime}) — satış tapılmadı (id={$op->id})</td></tr>";
+						}
+					}
 		?>
         </tbody>
   </div>

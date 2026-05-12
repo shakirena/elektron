@@ -52,7 +52,9 @@ $this->title = 'Arrivals';
 									<td></td>			
 							</tr>";
 				foreach($model as $move) {
-					if ($move['debt']>0 || $move['sum']>0) {
+					// FIX #19: продажи с debt=0, sum=0 должны отображаться (ранее терялись).
+					$isSellEntry2 = ($move['number'] !== null && $move['number'] > 0 && $move['debt'] >= 0 && $move['sum'] >= 0);
+					if ($move['debt']>0 || $move['sum']>0 || $isSellEntry2) {
 							$sum=round($sum+$move[sum],2);
 							if ($move[debt]==0) $move[debt]=$move[sum];
 							else $move[debt]=$move[debt]+$move[sum]+$move[bonus];
