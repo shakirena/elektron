@@ -50,9 +50,25 @@ $pricesell=Arrival::find()->where(['id_product'=>$res->id_product])->orderBy("id
 				
 				$pricesell=Arrival::find()->where(['id_product'=>$res->id_product])->orderBy("id DESC")->one()->pricesell;
 				
-				if (strlen($res->idProduct->name)>30) $size='9px';
-				else $size='12px';
-				echo "<div align='center' style='margin-bottom:16px'>".BarcodeGenerator::widget($optionsArray)."<span  style='font-size:$size !important'>".$res->idProduct->name."</span></span><br><span  style='font-size:15pt !important'><b>$pricesell AZN</b></span><br></div>";
+				// --- Feature #24: обрезка длинных названий для этикетки 40x20мм ---
+				$productName = $res->idProduct->name;
+				$maxChars = 28;
+				if (mb_strlen($productName, 'UTF-8') > $maxChars) {
+				    $displayName = mb_substr($productName, 0, $maxChars, 'UTF-8') . '…';
+				    $size = '9px';
+				} elseif (strlen($productName) > 30) {
+				    $displayName = $productName;
+				    $size = '9px';
+				} else {
+				    $displayName = $productName;
+				    $size = '12px';
+				}
+				// --- конец Feature #24 ---
+				echo "<div align='center' style='margin-bottom:16px'>"
+				    . BarcodeGenerator::widget($optionsArray)
+				    . "<span style='font-size:" . $size . " !important'>" . Html::encode($displayName) . "</span>"
+				    . "<br><span style='font-size:15pt !important'><b>" . $pricesell . " AZN</b></span><br>"
+				    . "</div>";
               // $pkgs[$i] = array('name' => $res->idProduct->name, 'sku' => $barcode->name,'price'=>$pricesell);
                $i++;
                //$count++;
