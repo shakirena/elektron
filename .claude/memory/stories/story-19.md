@@ -65,3 +65,25 @@
 - SQL injection: `$number` приведён к `(int)`, Yii2 ActiveRecord параметризованные запросы
 - Logging: `Yii::warning()` не содержит секретов
 - RBAC: изменения не расширяют права доступа
+
+---
+
+## QA
+
+**Статус:** qa:passed
+**Дата:** 2026-05-12
+**Coverage:** 100% новых строк — 14/14 тестов (ReportClientQueryTest.php) + 24/24 (RunTests.php)
+**Провалено:** 0
+**TC-документ:** docs/test-cases/tc-bug-019-report-client.md (TC-001, TC-002, TC-003, TC-004)
+**Gate G5:** PASS
+**Kanban:** kanban:ready-to-deploy
+
+### Верификация AC
+
+| AC | Описание | Статус |
+|----|----------|--------|
+| AC-1 | Выявлена причина исчезновения продаж (условие debt>0 или sum>0) | PASS |
+| AC-2 | Отчёт отображает продажи с debt=0 и sum=0 | PASS — isSellEntry/isSellEntry2 в обоих view |
+| AC-3 | Защита actionCancel при наличии оплат | PASS — hasPayments guard + Yii::warning |
+| AC-4 | Orphan-оплаты диагностируются (warning + визуальное выделение) | PASS — code verified in report_client.php |
+| AC-5 | Unit-тесты написаны | PASS — 14 тестов в ReportClientQueryTest.php |
