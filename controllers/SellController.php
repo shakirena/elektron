@@ -1021,6 +1021,21 @@ public function actionCancel($number = null){
 	}
 	$number = (int)$number;
 
+	// FIX #19: Защита от отмены продажи при наличии реальных оплат.
+	// Если по этой продаже уже были оплаты (debt < 0 в таблице dclient),
+	// запрещаем отмену и логируем событие.
+	$hasPayments = Dclient::find()
+		->where(['number' => $number])
+		->andWhere(['<', 'debt', 0])
+		->exists();
+	if ($hasPayments) {
+		\Yii::warning(
+			"[actionCancel] Blocked cancel of sell number={$number}: existing payments found in dclient.",
+			'sell-cancel'
+		);
+		return $this->asJson(['error' => 'Bu satış üçün ödəniş mövcuddur. Ləğv etmək mümkün deyil.']);
+	}
+
 			foreach (Sell::find()->where(['number'=>$number])->all() as $row) {
 						$sell=new Sell2();
                        $sell->id_user=$row->id_user;
