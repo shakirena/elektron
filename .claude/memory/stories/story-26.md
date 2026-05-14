@@ -2,7 +2,7 @@
 
 **Feature:** #24 — Обрезка длинных названий товаров при печати чека 40x20мм
 **Branch:** feature/24-barcode-print2-truncate
-**Status:** in-development
+**Status:** ready-to-deploy
 
 ---
 
@@ -36,4 +36,26 @@ Then название товара отображается полностью �
 
 ## Security Review
 
-(заполняется security-reviewer)
+**Verdict:** PASS
+**Label:** security:passed выставлен dev-lead
+
+---
+
+## QA
+
+**Verdict:** PASS
+**Coverage:** 100% (3/3 теста для Story #26)
+**Тест-раннер:** tests/run_print2_tests.php (standalone, без Codeception)
+**TC-документ:** docs/test-cases/feature-24-barcode-print2-truncate.md
+**Gate G5:** PASS 2026-05-14
+
+### Результаты тестов (Story #26)
+
+| Тест | Статус |
+|------|--------|
+| testShortNameUnchanged | PASS |
+| testExactlyMaxCharsUnchanged | PASS |
+| testEmptyNameUnchanged | PASS |
+
+**AC верифицированы:**
+- AC-1: короткое название ≤ 28 символов отображается полностью без «…» — PASS (TC-24-007)

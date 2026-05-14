@@ -2,7 +2,7 @@
 
 **Feature:** #24 — Обрезка длинных названий товаров при печати чека 40x20мм
 **Branch:** feature/24-barcode-print2-truncate
-**Status:** in-development
+**Status:** ready-to-deploy
 
 ---
 
@@ -54,4 +54,34 @@ if (mb_strlen($productName, 'UTF-8') > $maxChars) {
 
 ## Security Review
 
-(заполняется security-reviewer)
+**Verdict:** PASS
+**Label:** security:passed выставлен dev-lead
+
+---
+
+## QA
+
+**Verdict:** PASS
+**Coverage:** 100% (15/15 тестов, включая Story #26)
+**Тест-раннер:** tests/run_print2_tests.php (standalone, без Codeception)
+**TC-документ:** docs/test-cases/feature-24-barcode-print2-truncate.md
+**Gate G5:** PASS 2026-05-14
+
+### Результаты тестов (Story #25)
+
+| Тест | Статус |
+|------|--------|
+| testLongNameTruncated: заканчивается на «…» | PASS |
+| testLongNameTruncated: длина = maxChars + 1 | PASS |
+| testTruncatedLengthIsMaxChars | PASS |
+| testNameOneOverLimitTruncated | PASS |
+| testCyrillicMultibyteHandled: многоточие | PASS |
+| testCyrillicMultibyteHandled: длина обрезки | PASS |
+| testPrint2ViewUsesMbStrlen | PASS |
+| testPrint2ViewUsesMbSubstr | PASS |
+| testPrint2ViewHasCorrectMaxChars | PASS |
+| testPrint2ViewAddsEllipsis | PASS |
+| testPrint2ViewUsesHtmlEncode | PASS |
+
+**AC верифицированы:**
+- AC-1: длинное название обрезается до 28 символов + «…» — PASS (TC-24-001)

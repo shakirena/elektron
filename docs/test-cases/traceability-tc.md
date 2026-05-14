@@ -89,3 +89,33 @@
 | TC-13-005 | ArticleNumberFilterTest.php | testRestViewContainsArticleNumberColumnAndAttribute |
 | TC-13-006 | ArticleNumberFilterTest.php | testRestSearchArticleNumberInSafeRules, testRestSearchContainsArticleNumberLikeFilter, testRestViewContainsArticleNumberColumnAndAttribute |
 | TC-13-007 | Static: andFilterWhere LIKE verified in all three Search models | — |
+
+## Feature #24 — Обрезка длинных названий при печати 40x20мм
+
+| Feature | Story | AC | TC | Priority | Type | E2E Automated |
+|---------|-------|----|----|----------|------|---------------|
+| Feature #24 | #25 | Given длинное название > 28 символов Then обрезается с «…» | TC-24-001 | High | Happy Path | No |
+| Feature #24 | #25 | MAX_CHARS = 28 символов | TC-24-002 | High | Happy Path | No |
+| Feature #24 | #25 | Граничный случай: 29 символов обрезается | TC-24-003 | Medium | Edge Case | No |
+| Feature #24 | #25 | Кириллица обрабатывается через mb_* | TC-24-004 | High | Happy Path | No |
+| Feature #24 | #25 | print2.php использует mb_strlen/mb_substr/$maxChars/«…» | TC-24-005 | High | Code Structure | No |
+| Feature #24 | #25 | XSS-защита: Html::encode($displayName) | TC-24-006 | High | Security | No |
+| Feature #24 | #26 | Given короткое название ≤ 28 Then отображается полностью | TC-24-007 | High | Happy Path | No |
+| Feature #24 | #26 | Граничный случай: ровно 28 символов — без обрезки | TC-24-008 | High | Edge Case | No |
+| Feature #24 | #26 | Пустое название — без изменений | TC-24-009 | Medium | Error Case | No |
+| Feature #24 | #25+#26 | RBAC: логика в View-слое, без новых ролей | TC-24-010 | Low | RBAC | No |
+
+## Feature #24 Unit Test Mapping
+
+| TC | Unit Test File | Test Method |
+|----|---------------|-------------|
+| TC-24-001 | Print2TruncateTest.php | testLongNameTruncated |
+| TC-24-002 | Print2TruncateTest.php | testTruncatedLengthIsMaxChars |
+| TC-24-003 | Print2TruncateTest.php | testNameOneOverLimitTruncated |
+| TC-24-004 | Print2TruncateTest.php | testCyrillicMultibyteHandled |
+| TC-24-005 | Print2TruncateTest.php | testPrint2ViewUsesMbStrlen, testPrint2ViewUsesMbSubstr, testPrint2ViewHasCorrectMaxChars, testPrint2ViewAddsEllipsis |
+| TC-24-006 | Print2TruncateTest.php | testPrint2ViewUsesHtmlEncode |
+| TC-24-007 | Print2TruncateTest.php | testShortNameUnchanged |
+| TC-24-008 | Print2TruncateTest.php | testExactlyMaxCharsUnchanged |
+| TC-24-009 | Print2TruncateTest.php | testEmptyNameUnchanged |
+| TC-24-010 | Static: views/barcode/print2.php + security review comment | — |
