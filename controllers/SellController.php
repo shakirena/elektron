@@ -68,7 +68,7 @@ class SellController extends Controller
 			
 			'access' => [
                 'class' => AccessControl::className(),
-                'only' => ['index','report','dialog','postponed'],
+                'only' => ['index','index-v2','report','dialog','postponed'],
                 'rules' => [
                     [
                        
@@ -104,7 +104,29 @@ class SellController extends Controller
 			'model'=>$sum,
 			'user'=>$sum->user_issue,
 			'bonus' => $bonus
-           
+
+
+        ]);
+    }
+
+    /**
+     * Yeni dizaynlı satış paneli (index ilə eyni məlumat, fərqli görünüş).
+     * @return mixed
+     */
+    public function actionIndexV2()
+    {
+        $searchModel = new Sell2Search(['sold'=>0,'id_user'=> Yii::$app->user->identity->id_user,'returnp' =>0,'postponed'=>0]);
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+        $sum=Sell2::find()->select('sum(sum) as sum,user_issue,id_client,id_store')->where(['sold'=>'0','id_user'=> Yii::$app->user->identity->id_user,'postponed'=>'0'])->groupBy('number')->one();
+        $bonus = $this->actionBonusSum(Yii::$app->session->get('id_bonus'));
+
+        return $this->render('index_v2', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+            'sum'=> $sum->sum,
+			'model'=>$sum,
+			'user'=>$sum->user_issue,
+			'bonus' => $bonus
 
         ]);
     }
@@ -580,6 +602,20 @@ $i++;
         $model->delete();
         return $this->redirect(['index']);
     }
+
+    /**
+     * Same as actionDelete, but for the sell/index-v2 page — keeps the
+     * cashier on the new design instead of bouncing back to the old one.
+     * @param integer $id
+     * @return mixed
+     */
+    public function actionDeleteV2($id)
+    {
+        $model = Sell2::find()->where(['id' => $id])->one();
+        $model->delete();
+        return $this->redirect(['index-v2']);
+    }
+
 	  public function actionDelete2($id)
     {
         $model =Sell2::find()->where(['id'=>$id])->one();
@@ -648,7 +684,7 @@ $i++;
         $returnp->reason=$reason;
         $returnp->id_client=$client;
         $returnp->quantity=$quantity;
-        $returnp->data=date("Y-m-d");
+        $returnp->data=date("Y-m-d H:i:s");
         $returnp->id_user= Yii::$app->user->identity->id_user;
         $returnp->save();
         $returnp->save();
@@ -1118,9 +1154,21 @@ public function actionCancel($number = null){
         $money2=$money;
 
       $max=Sell2::find()->where(['sold' => 0,'id_user'=>Yii::$app->user->identity->id_user,'postponed'=>0])->one()->number;
+
+        // FIX: скидка "Güzəşt" распределяется по позициям пропорционально их сумме,
+        // чтобы Sell.price/Sell.sum (и, соответственно, отчёты) отражали цену со скидкой.
+        $discountTotalSum = (float) (new Sell2())->find()->where(['sold' => 0,'id_user'=>Yii::$app->user->identity->id_user,'postponed'=>0])->sum('sum');
+        $discountRatio = ($discount > 0 && $discountTotalSum > 0) ? $discount / $discountTotalSum : 0;
+
         $model = new Sell2();
         $summa=0;  $usd=0;
         foreach ($model->find()->where(['sold' => 0,'id_user'=>Yii::$app->user->identity->id_user,'postponed'=>0])->all() as $row) {
+            $rowPrice = $row->price;
+            $rowSum = $row->sum;
+            if ($discountRatio > 0) {
+                $rowSum = round($row->sum * (1 - $discountRatio), 2);
+                $rowPrice = $row->quantity > 0 ? round($rowSum / $row->quantity, 2) : $row->price;
+            }
             $sum=$row->sum-$money;
             if($sum<0) $sum=0;
             $money=$money-$row->sum;
@@ -1159,13 +1207,13 @@ public function actionCancel($number = null){
 				$sell->id_user=$row->id_user;
                        $sell->id_product=$row->id_product;
                        $sell->quantity=$row->quantity;
-                       $sell->price=$row->price;
+                       $sell->price=$rowPrice;
                         if ($rate==1) $sell->price_ar = $arrival->price;
                         else $sell->price_ar = $arrival->usd;
                        $sell->sold = 1;
-                       $sell->sum=$row->sum;
+                       $sell->sum=$rowSum;
                        $sell->usd=$row->usd;
-                       // if ($row->datetime)  
+                       // if ($row->datetime)
 						$sell->datetime=$row->datetime;
 					  //else $sell->datetime=date("Y-m-d H:i:s");
                        $sell->id_client = Yii::$app->session->get('id_client');;
@@ -1182,8 +1230,8 @@ public function actionCancel($number = null){
 										$sell->earnings = ($arrival->price_top - $arrival->price/$arrival->pack) * $row->quantity;
 									else
 										$sell->earnings = ($arrival->pricesell - $arrival->price) * $row->quantity;
-								}	
-								else  $sell->earnings = ($row->price - $arrival->price) * $row->quantity;  
+								}
+								else  $sell->earnings = ($rowPrice - $arrival->price) * $row->quantity;
                     $sell->earnings=round($sell->earnings,2);
                        $sell->postponed = 0;
                        $sell->debt = $sum;
@@ -1223,11 +1271,11 @@ public function actionCancel($number = null){
                     $sell->id_user=$row->id_user;
                     $sell->id_product=$row->id_product;
                     $sell->quantity=$row->quantity;
-                    $sell->price=$row->price;
+                    $sell->price=$rowPrice;
                     if ($rate==1) $sell->price_ar = $arrival->price;
                         else $sell->price_ar = $arrival->usd;
                     $sell->sold = 1;
-                    $sell->sum=$row->sum;
+                    $sell->sum=$rowSum;
                     $sell->usd=$row->usd;
                     $sell->datetime=$row->datetime;
                     $sell->id_client =Yii::$app->session->get('id_client');;
@@ -1243,9 +1291,9 @@ public function actionCancel($number = null){
 										$sell->earnings = ($arrival->price_top - $arrival->price/$arrival->pack) * $row->quantity;
 									else
 										$sell->earnings = ($arrival->pricesell - $arrival->price) * $row->quantity;
-								}	
-								else  $sell->earnings = ($row->price - $arrival->price) * $row->quantity;  
-                   $sell->earnings=round($sell->earnings,2); 
+								}
+								else  $sell->earnings = ($rowPrice - $arrival->price) * $row->quantity;
+                   $sell->earnings=round($sell->earnings,2);
 				   $sell->postponed = 0;
                     $sell->debt = $sum;
                     $sell->save();
@@ -1378,14 +1426,27 @@ public function actionCancel($number = null){
          $model->updateAll(['id_client'=>NULL], ['sold' => 0,'id_user' =>Yii::$app->user->identity->id_user,'postponed'=>0]);
 
 		 return $this->redirect(['index']);
-		
+
 	}
-	
+
+	/**
+	 * Same as actionDeleteClient, but keeps the cashier on sell/index-v2.
+	 */
+	public function actionDeleteClientV2()
+	{
+		Yii::$app->session->set('id_client', 1);
+		Yii::$app->session->set('client', "Müştəri");
+		$model = new Sell2();
+		$model->updateAll(['id_client' => NULL], ['sold' => 0, 'id_user' => Yii::$app->user->identity->id_user, 'postponed' => 0]);
+
+		return $this->redirect(['index-v2']);
+	}
+
 	public function  actionDeleteBonus()
 	{
 		 Yii::$app->session->remove('id_bonus');
          Yii::$app->session->remove('bonus');
-		 
+
 		 return $this->redirect(['index']);
 		
 	}
@@ -1578,20 +1639,27 @@ public function actionCancel($number = null){
     }
     public function actionPrint($money,$discount,$user,$kassa,$virtual)
     {
-		$discount = 0;
+		// Ручная скидка "Güzəşt", введённая кассиром при оплате, ещё не применена
+		// к позициям корзины (это происходит в actionReceived) — здесь вычитаем её
+		// из итога заранее, чтобы Cəmi/Güzəşt/Yekün на чеке сходились.
+		// $discount приходит строкой из запроса (и может быть пустой ""), поэтому
+		// приводим к числу сразу — иначе "$discount + ..." ниже в цикле кидает
+		// "A non-numeric value encountered".
+		$discount = (float) $discount;
+		$manualDiscount = $discount;
+
         $searchModel = new Sell2Search(['sold' => 0,'id_user'=> Yii::$app->user->identity->id_user,'postponed'=>0]);
         $dataProvider = $searchModel->search(Yii::$app->request->queryParams, 'received');
         $sum=Sell2::find()->select('sum(sum) as sum,number,datetime,user_issue')->where(['sold' => 0,'id_user'=> Yii::$app->user->identity->id_user, 'postponed'=>0])->one();
-		$sum->sum = round($sum->sum,2);
+		$sum->sum = round($sum->sum - $manualDiscount,2);
 		$debt=Dclient::find()->select("sum(debt) as sum")->where(["id_client"=>Yii::$app->session->get('id_client')])->one();
 		if ($debt) $debt=$debt->sum;
-		
+
 		foreach ( Sell2::find()->where(['sold' => 0,'id_user'=> Yii::$app->user->identity->id_user, 'postponed'=>0])->all() as $model)
 		{
 			$discount = $discount + $model->quantity*( $model->getPriceSell() - $model->price) ;
-			
+
 		}
-		
         return $this->renderAjax('print',[
             'dataProvider' => $dataProvider,
             'money' => $money,
@@ -1855,14 +1923,13 @@ public function actionCancel($number = null){
     }
 public function actionReceivedDebt($id,$sum,$note,$date,$kassa){
  $sum2=$sum;
- $existingDclient=Dclient::find()->where(["id_client" =>$id])->andWhere(['>', 'debt', 0])->one();
- $sellNumber = ($existingDclient !== null && $existingDclient->number !== null) ? (int)$existingDclient->number : 0;
-
+ // number намеренно остаётся NULL: погашение долга — это общая операция по
+ // клиенту, а не привязка к одной конкретной продаже (см. actionPrint2,
+ // где number=NULL уже трактуется как "непривязанное" движение долга).
       	$dclient=new Dclient();
 		$dclient->debt=-$sum;
 
             $dclient->id_client=$id;
-			$dclient->number=$sellNumber;
 			$dclient->note=$note;
             $dclient->datetime=$date.date(" H:i:s");
             $dclient->save();
