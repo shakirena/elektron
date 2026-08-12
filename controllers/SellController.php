@@ -648,7 +648,7 @@ $i++;
         $returnp->reason=$reason;
         $returnp->id_client=$client;
         $returnp->quantity=$quantity;
-        $returnp->data=date("Y-m-d");
+        $returnp->data=date("Y-m-d H:i:s");
         $returnp->id_user= Yii::$app->user->identity->id_user;
         $returnp->save();
         $returnp->save();
