@@ -67,7 +67,26 @@
 
 ## Security Review
 
-**Verdict:** PASS (pending — security-reviewer запущен)
+**Статус:** PASS ✅
+**Дата:** 2026-08-13
+**GitHub Comment:** https://github.com/shakirena/elektron/issues/31#issuecomment-5275157022
+
+**Проверено:**
+- OWASP A01 Access Control: ✅ — `AccessControl` roles=['@'], VerbFilter GET-only
+- OWASP A03 Injection (SQL): ✅ — `buildUnionSql()` статичный SQL, все переменные через `bindValues()`
+- OWASP A07 Auth: ✅ — CSRF не требуется для GET-формы, AccessControl блокирует анонимов
+- OWASP A08 Data Integrity: ✅ — нет `unserialize()/eval()` с user input
+- PHP XSS: ✅ — `Html::encode()` на всех строковых выводах в GridView-колонках
+- Mass Assignment: ✅ — `load()` через `rules()` (5 явных атрибутов)
+- Open Redirect: ✅ — нет `$this->redirect()` с пользовательским URL
+- Меню: ✅ — статическая строка, нет user input
+
+**Уязвимости найдены:** нет
+**Рекомендации (LOW, не блокируют):**
+- Rate limiting на read-only endpoint (приемлемо для внутреннего ERP)
+- Добавить date-валидатор для `date_from`/`date_to` (сейчас `'safe'`, формат не проверяется)
+
+**Label:** `security:passed`
 
 ---
 
