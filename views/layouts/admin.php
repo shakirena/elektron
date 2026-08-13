@@ -105,6 +105,7 @@ else $role3=0;
 						//   ['label' => 'Günün sonu', 'url' => ['/move/itog']],
 						   ['label' => 'Product', 'url' => ['/move/move-report']],
 						['label' => 'History', 'url' => ['/history/index']],
+							['label' => 'Mal hərəkəti (tam)', 'url' => ['/product-movement/report']],
 						['label' => 'Borcler', 'url' => ['/sell/dclient-print']],
                       //  ['label' => 'Müştəri hərəkəti', 'url' => ['/move/client']],
                     ]
