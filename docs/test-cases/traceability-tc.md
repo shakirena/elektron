@@ -1,7 +1,7 @@
 # Test Case Traceability Matrix
 
 *Инициализировано: 2026-05-07*
-*Обновлено: 2026-05-08 (Bug #1 — stories #2, #3, #4; Feature #5 — stories #6–#12)*
+*Обновлено: 2026-08-13 (Feature #27 — story #31: TC-27-010, TC-27-011, TC-27-012, TC-27-013, TC-27-014, TC-27-RBAC-4)*
 
 | Feature | Story | AC | TC | Priority | Type | E2E Automated |
 |---------|-------|----|----|----------|------|---------------|
@@ -119,3 +119,49 @@
 | TC-24-008 | Print2TruncateTest.php | testExactlyMaxCharsUnchanged |
 | TC-24-009 | Print2TruncateTest.php | testEmptyNameUnchanged |
 | TC-24-010 | Static: views/barcode/print2.php + security review comment | — |
+
+## Feature #27 — Отчёт «Движение товара»
+
+| Feature | Story | AC | TC | Priority | Type | E2E Automated |
+|---------|-------|----|----|----------|------|---------------|
+| Feature #27 | #28 | returnp.data содержит DATETIME после возврата | TC-27-001 | High | Happy Path | No |
+| Feature #27 | #28 | Старые записи returnp (до миграции) — время 00:00:00 | TC-27-002 | Medium | Error/Edge Case | No |
+| Feature #27 | #28 | Два возврата подряд фиксируют разное время | TC-27-003 | Medium | Edge Case | No |
+| Feature #27 | #28 | Неаутентифицированный не может вызвать actionReceivedReturn | TC-27-RBAC-1 | High | RBAC | No |
+| Feature #27 | #29 | Запись в sverka_log при применении сверки | TC-27-004 | High | Happy Path | No |
+| Feature #27 | #29 | qty_before == qty_after → delta=0, запись всё равно создаётся | TC-27-005 | Medium | Error/Edge Case | No |
+| Feature #27 | #29 | Несколько позиций в сверке → несколько записей в sverka_log | TC-27-006 | Medium | Edge Case | No |
+| Feature #27 | #29 | Неаутентифицированный не может применить сверку | TC-27-RBAC-2 | High | RBAC | No |
+| Feature #27 | #30 | UNION из 6 источников, сортировка DESC | TC-27-007 | High | Happy Path | No |
+| Feature #27 | #30 | guard-логика: id_product required | TC-27-008 | High | Error Case | No |
+| Feature #27 | #30 | фильтры date_from/date_to, id_store, operation_type | TC-27-009 | Medium | Functional | No |
+| Feature #27 | #30 | NFR-2 — RBAC на уровне контроллера, не модели | TC-27-RBAC-3 | High | RBAC | No |
+| Feature #27 | #31 | GridView с хронологическим списком операций по выбранному товару | TC-27-010 | High | Happy Path | No |
+| Feature #27 | #31 | Предупреждение при открытии без выбора товара | TC-27-011 | High | Error Case | No |
+| Feature #27 | #31 | Фильтрация по диапазону дат сужает результат | TC-27-012 | Medium | Functional | No |
+| Feature #27 | #31 | Типы операций отображаются цветными badge | TC-27-013 | Medium | UI | No |
+| Feature #27 | #31 | Footer GridView показывает сумму quantity | TC-27-014 | Low | UI | No |
+| Feature #27 | #31 | NFR-2 — неаутентифицированный перенаправляется на login | TC-27-RBAC-4 | Critical | RBAC | No |
+
+## Feature #27 Unit Test Mapping
+
+| TC | Unit Test File | Test Method |
+|----|---------------|-------------|
+| TC-27-001 | ReturnpDatetimeTest.php | testSellControllerUsesDatetimeFormat, testDatetimeFormatContainsTime |
+| TC-27-002 | ReturnpDatetimeTest.php | testDateOnlyFormatLacksTime |
+| TC-27-003 | ReturnpDatetimeTest.php | testDatetimeStringLongerThanDateOnly, testSellControllerDoesNotUseDateOnlyForReturnp |
+| TC-27-004 | SverkaLogTest.php | testTableName, testRulesContainRequiredFields, testAttributeLabelsCovertAllPersistedFields |
+| TC-27-005 | SverkaLogTest.php | testDeltaCalculationZero |
+| TC-27-006 | SverkaLogTest.php | testDeltaCalculationPositive, testDeltaCalculationNegative |
+| TC-27-RBAC-1 | Static: AccessControl в SellController + NFR-2 | — |
+| TC-27-RBAC-2 | Static: AccessControl в SverkaController + NFR-2 | — |
+| TC-27-007 | ProductMovementSearchTest.php | (integration test — happy path требует реальной БД; unit-покрытие обратного случая: testEmptyDataProviderWhenIdProductMissing) |
+| TC-27-008 | ProductMovementSearchTest.php | testEmptyDataProviderWhenIdProductMissing, testRulesRequireIdProduct |
+| TC-27-009 | ProductMovementSearchTest.php | testBuildBindingsMapping, testBuildBindingsNullableFiltersAreNull, testBuildUnionSqlContainsAllSources |
+| TC-27-RBAC-3 | Static: ProductMovementSearch не содержит AccessControl | — |
+| TC-27-010 | RunProductMovementTests.php | testActionReportDelegatesSearchToModel |
+| TC-27-011 | RunProductMovementTests.php | testActionReportDelegatesSearchToModel (guard-case) |
+| TC-27-012 | RunProductMovementTests.php | testBuildBindingsMapping (via ProductMovementSearch) |
+| TC-27-013 | Static: views/product-movement/report.php badge closures | — |
+| TC-27-014 | Static: views/product-movement/report.php footer array_sum | — |
+| TC-27-RBAC-4 | RunProductMovementTests.php | testBehaviorsContainsAccessControl, testAccessControlAllowsOnlyAuthenticatedRole |
