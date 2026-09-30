@@ -2,6 +2,92 @@
  * Created by Администратор on 09.08.2016.
  */
 
+// Sell paneli iki dizaynda mövcuddur (index / index-v2). Bu funksiya cari
+// səhifəni müəyyən edir ki, "index"-ə hardcode olunmuş yönləndirmələr kassiri
+// yeni dizayndan köhnəyə atmasın. Hansı dizaynda olduğumuzu DOM-a görə (səhifənin
+// öz wrapper class-ı) müəyyən edib sessionStorage-da yadda saxlayırıq — çünki
+// "Gözləmədə" kimi axınlar sell/postponed-ə tam keçid edir və oradan geri
+// qayıdanda URL-də artıq "index-v2" görünmür, amma hansı dizayndan gəldiyimizi
+// bilməliyik.
+(function () {
+    if (document.querySelector('.sell-v2')) {
+        sessionStorage.setItem('sellDesign', 'v2');
+    } else if (document.querySelector('.sell-index')) {
+        sessionStorage.setItem('sellDesign', 'v1');
+    }
+})();
+function sellHomeUrl() {
+    var stored = sessionStorage.getItem('sellDesign');
+    if (stored === 'v2') return 'index-v2';
+    if (stored === 'v1') return 'index';
+    return window.location.pathname.indexOf('index-v2') !== -1 ? 'index-v2' : 'index';
+}
+
+// USB barkod skaneri klaviatura kimi işləyir: simvolları çox sürətlə "yazır"
+// və sonda Enter göndərir. Bu, kassir #barcode sahəsinə klikləməyi unutsa da
+// (məsələn, "Verdi" sahəsində fokus qalıbsa) skanı tutub düzgün sahəyə yönləndirir.
+// YALNIZ satış səhifələrində (sell/index, sell/index-v2) işləyir — digər
+// səhifələrdə (məsələn product/index-in filtr sahəsi də "#barcode" id-si
+// daşıyır) bu, səhv elementə müdaxilə edib malın əlavə olunmasına mane olurdu.
+(function () {
+    var buffer = '';
+    var lastTime = 0;
+    var scanStartField = null;
+    var scanStartValue = null;
+    var GAP_MS = 30; // insan yazısı bundan xeyli yavaşdır, skaner isə hər simvolu bir neçə ms-də göndərir
+    var MIN_LENGTH = 3;
+
+    function isTypingField(el) {
+        if (!el || !el.tagName) return false;
+        var tag = el.tagName.toLowerCase();
+        return tag === 'input' || tag === 'textarea' || el.isContentEditable === true;
+    }
+
+    function isOnSellPage() {
+        return !!(document.querySelector('.sell-v2') || document.querySelector('.sell-index'));
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (!isOnSellPage()) return;
+
+        var now = Date.now();
+
+        if (e.key === 'Enter') {
+            var looksLikeScan = buffer.length >= MIN_LENGTH && (now - lastTime) < GAP_MS;
+            if (looksLikeScan) {
+                var barcodeField = document.getElementById('barcode');
+                // Əgər fokus artıq #barcode sahəsindədirsə, sahənin öz onchange-i
+                // skaneri onsuz da düzgün emal edəcək — burada da tətikləsək,
+                // mal iki dəfə əlavə olunur. Yalnız fokus BAŞQA yerdə olanda
+                // özümüz aradan çıxarırıq.
+                if (barcodeField && document.activeElement !== barcodeField) {
+                    if (scanStartField && scanStartField !== barcodeField && isTypingField(scanStartField)) {
+                        // skan zamanı fokus başqa sahədə idisə, ora yazılan simvolları geri qaytarırıq
+                        scanStartField.value = scanStartValue;
+                    }
+                    barcodeField.value = buffer;
+                    barcodeField.dispatchEvent(new Event('change', {bubbles: true}));
+                }
+            }
+            buffer = '';
+            scanStartField = null;
+            scanStartValue = null;
+            return;
+        }
+
+        if (e.key && e.key.length === 1) {
+            if (now - lastTime > GAP_MS) {
+                buffer = '';
+                scanStartField = document.activeElement;
+                scanStartValue = isTypingField(scanStartField) ? scanStartField.value : null;
+            }
+            buffer += e.key;
+            lastTime = now;
+        } else {
+            buffer = '';
+        }
+    }, false);
+})();
 
 $("#kartik-modal").on('hidden.bs.modal',function(){
     window.location.replace("index")
@@ -10,7 +96,8 @@ $("#barcode-modal").on('hidden.bs.modal',function(){
     window.location.replace("price")
 });
 $("#sell-modal").on('hidden.bs.modal',function(){
-    window.location.replace("index")
+    $(document).off('.sellFind');
+    window.location.replace(sellHomeUrl())
 
 });
 
@@ -218,7 +305,10 @@ $("#product").click(function(){
 
 $("#postponed_dialog").click(function(){
     //window.open("postponed");
-    window.location.replace("postponed");
+    // .replace() burada tarixçədən (browser history) cari satış səhifəsini
+    // (sell/index / sell/index-v2) silirdi — "Geri" düyməsi ondan da qabağa,
+    // əvvəlki səhifəyə tullanırdı. Normal keçid tarixçəni düzgün saxlayır.
+    window.location.href = "postponed";
 });
 $("#store").click(function(){
     $("#store-create").modal("show")
@@ -620,7 +710,7 @@ function addSellBarcode(barcode){
     if (/\d/.test(barcode)){
 			
     $.get('check-bonus', {barcode:barcode},function(data){
-		if (data==1 )   {window.location.replace("index"); return;}
+		if (data==1 )   {window.location.replace(sellHomeUrl()); return;}
 		 $.get('check-barcode', {barcode:barcode},function(data){
 			 
 			if (data==1) 	{
@@ -745,11 +835,17 @@ function quantityProduct(product) {
 };
 function addSell(id,rest,pack)
 {
+    // Axtarış pəncərəsinin öz cədvəli də ('sell/find') pjax istifadə edir və
+    // confirm()/prompt() gözlədiyi müddətdə window.location-u dəyişə bilir.
+    // Ona görə hansı URL-i yeniləyəcəyimizi ("index" / "index-v2") ötəri
+    // vəziyyətdən asılı olmadan özümüz göstəririk.
+    var reloadUrl = (typeof sellHomeUrl === 'function') ? sellHomeUrl() : undefined;
+
     if (rest>0) {
          var quantity=prompt("Say / Migdar  ( qutuda ədəd sayı "+pack+") ",1);
          if (quantity) {
          $.get('insert', {id:id,quantity:quantity},function(){
-        // $.pjax.reload({container:"#grid-arrival"});
+         $.pjax.reload({container:"#grid-arrival", url: reloadUrl});
          });
          }
         //alert("sd");
@@ -760,7 +856,7 @@ function addSell(id,rest,pack)
         var quantity=prompt("Migdar  ?",1);
         if (quantity) {
             $.get('insert', {id:id,quantity:quantity},function(){
-                $.pjax.reload({container:"#grid-arrival"});
+                $.pjax.reload({container:"#grid-arrival", url: reloadUrl});
             });
         }
     }
@@ -792,9 +888,9 @@ function addSverkaBarcode(barcode){
 }
 function deleteAll()
 {
-if (confirm("Ləğv etmək istədiyinizdəb əminsiniz?")){	
+if (confirm("Ləğv etmək istədiyinizdəb əminsiniz?")){
     $.get('delete-all', {},function(){
-       window.location.replace("index");
+       window.location.replace(sellHomeUrl());
     });
 }
 }
@@ -847,7 +943,7 @@ function selectClient(id)
 {
     if(confirm("Qeyd olunun müştəri seçilsin?")) {
         $.get('select', {id: id}, function () {
-            window.location.replace("index");
+            window.location.replace(sellHomeUrl());
             //$.pjax.reload({container: "#grid-arrival"});
         });
     }
@@ -896,7 +992,7 @@ function gener2()
 function cancel(number){
   //  if(confirm("Ləğv ətmək istədiynizdən əmin sinizmi?")) {
         $.get('cancel', {number: number}, function () {
-            window.location.replace("index");
+            window.location.replace("index-v2");
             //$.pjax.reload({container: "#grid-arrival"});
         });
 
@@ -913,7 +1009,7 @@ function cancelReturn(number){
 function cancelPos(number){
   //  if(confirm("Ləğv ətmək istədiynizdən əmin sinizmi?")) {
         $.get('cancel-pos', {number: number}, function () {
-            window.location.replace("index");
+            window.location.replace(sellHomeUrl());
             //$.pjax.reload({container: "#grid-arrival"});
         });
 
@@ -996,7 +1092,7 @@ if (flag) {
 			
 									setTimeout(function(){
 														$.get('received', {money: money,postponed:0,date:date,rate:rate,store:store,user:user,discount:discount,kassa:kassa,virtual:virtual}, function () {
-															window.location.replace("index")
+															window.location.replace(sellHomeUrl())
 													});
 										
 											},200);	
@@ -1055,7 +1151,7 @@ function receivedSell2(money,date,rate,store,user,discount) {
     //  setTimeout(function(){
 
     $.get('received', {money: money,postponed:1,date:date,rate:rate,store:store,user:user,discount:discount,kassa:0,virtual:0}, function () {
-        window.location.replace("index")
+        window.location.replace(sellHomeUrl())
     });
     //   },4000);
 
@@ -1142,9 +1238,19 @@ function printProduct(id)
  $("<iframe>")                             // create a new iframe element
         .hide()                               // make it invisible
         .attr("src", "print?id="+id) // point the iframe to the page you want to print
-        .appendTo("body");  	
- 
-	
+        .appendTo("body");
+
+
+}
+
+function printSverka()
+{
+ $("<iframe>")                             // create a new iframe element
+        .hide()                               // make it invisible
+        .attr("src", "print") // point the iframe to the page you want to print
+        .appendTo("body");
+
+
 }
 
 function editPriceTop(id,price)
@@ -1193,7 +1299,7 @@ function editProcent(procent,price)
     //pricesell=price* $("#proc").val()/100;
     $.get('procent-edit', {procent: procent,price: price},function(date){
 
-        $("#pricesell").val(date);
+        $("#price").val(date);
 		editPack();
 
     });
@@ -1216,10 +1322,10 @@ function returnSellReceived(sum,bonus)
 					.appendTo("body"); 
 			 setTimeout(function () {
 				$.get('return-sell-received', {sum:sum,store:$("#store2").val(),user:$("#user").val(),bonusum:bonus}, function () {
-					window.location.replace("index");
+					window.location.replace(sellHomeUrl());
 				});
-             
-			},300);	
+
+			},300);
 			 
 			
 		}
@@ -1231,10 +1337,17 @@ function returnSellReceived(sum,bonus)
 function sverkaReceived(){
 
 if (confirm("Təsdiqləmək istədiyinizdən əminsiniz?")){
-    $.get('received', {}, function () {
+    // Siyahıda olmayan (sayılmayan) malların qalığı sıfırlansınmı? Operator
+    // hər dəfə özü seçir — kod bunu sərt şəkildə həll etmir.
+    var zeroUnlisted = confirm(
+        "Bu anbarda olub, amma sverka siyahısına DAXİL EDİLMƏYƏN malların qalığı SIFIRLANSIN?\n\n" +
+        "OK — Bəli, tam sayım (sayılmayan hər şey 0 olsun)\n" +
+        "Ləğv et — Xeyr, yalnız daxil etdiyim mallar yenilənsin, qalanına toxunulmasın"
+    );
+    $.get('received', {zeroUnlisted: zeroUnlisted ? 1 : 0}, function () {
         window.location.replace("index");
     });
-}	
+}
 }
 /*function returnSellReceived(quantity,reason,id,client)
 {

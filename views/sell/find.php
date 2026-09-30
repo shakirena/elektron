@@ -62,10 +62,20 @@ use app\models\Store;
     <?= GridView::widget([
         'dataProvider' => $dataProvider,
         'filterModel' => $searchModel,
+        'id' => 'grid-find',
+        'pjaxSettings' => [
+            'options' => [
+                'id' => 'grid-find-pjax',
+                'enablePushState' => false,
+                'enableReplaceState' => false,
+                'timeout' => 5000,
+            ],
+        ],
         'tableOptions' => [
-            'style' => 'width:800px;cursor:pointer',
+            'style' => 'width:860px;cursor:pointer;table-layout:fixed',
             'class' => 'table-rena table-rena2',
         ],
+        'resizableColumns' => false,
         'pjax' =>true,
         'hover'=>true,
         'striped' =>true,
@@ -91,7 +101,7 @@ use app\models\Store;
                 'format'=>'raw',
 				'subGroupOf'=>1,
                 'group'=>true,
-                'width' => '350px',
+                'width' => '250px',
 				'filterInputOptions' => ['id'=>'name','class'=>'form-control']
                 //'filterInputOptions' => ['placeholder' => 'Any type']
             ]
@@ -101,7 +111,8 @@ use app\models\Store;
                 'label'  => 'Artikul nomresi',
                 'value'  => 'product.article_number',
                 'format' => 'raw',
-                'width'  => '120px',
+                'width'  => '80px',
+                'headerOptions' => ['style' => 'white-space:normal'],
             ],
             [
                 'attribute' =>'type',
@@ -117,7 +128,7 @@ use app\models\Store;
                     'pluginOptions' => ['allowClear' => true]
                 ],
                 'filterType' => GridView::FILTER_SELECT2,
-                'width' => '150px',
+                'width' => '100px',
                 'filterInputOptions' => ['placeholder' => 'Any type']
             ],
 			
@@ -128,20 +139,20 @@ use app\models\Store;
                     return round($model->rest,4) ;
                 },
                 'format'=>'raw',
-                'width' =>'30px',
+                'width' =>'50px',
                 'encodeLabel' => false,
                 'footer' => $rest_sum,
 				'filter'=>false,
                 // 'pageSummary' => true,
             ],
 
-        
-           
+
+
 			[
-               
+
                 'label' => 'Qiymeti',
                 'value' =>'priceSell',
-                'width' =>'30px',
+                'width' =>'50px',
             ],
 			[
 				'attribute' =>'id_contr',
@@ -152,7 +163,7 @@ use app\models\Store;
 						
                     ],
                     'filterType' =>GridView::FILTER_SELECT2,
-                    'width' => '200px',
+                    'width' => '120px',
                     'filterInputOptions' =>['placeholder'=>'Any ']
 
 
@@ -160,8 +171,16 @@ use app\models\Store;
           
 			[
                 'attribute' => 'barcode',
-                'value' => 'nameBarcode'
+                'value' => 'nameBarcode',
+                'width' => '170px',
+                'contentOptions' => ['style' => 'word-break:break-all'],
+            ],
+            [
+                'attribute' => 'polka',
+                'value' => 'getPolka',
+                'width' => '40px',
             ]
+
 
         ],
     ]); ?>
@@ -170,11 +189,10 @@ use app\models\Store;
 <?php
 $script = <<< JS
 
-$(document).on('pjax:complete', function () {
-  
-   $("#name").focus();
-
-});
+$(document).off('pjax:complete.sellFind')
+           .on('pjax:complete.sellFind', function () {
+               $("#name").focus();
+           });
   
 
  $(document).ready(function(){
