@@ -1,7 +1,7 @@
 # Test Case Traceability Matrix
 
 *Инициализировано: 2026-05-07*
-*Обновлено: 2026-08-13 (Feature #27 — story #31: TC-27-010, TC-27-011, TC-27-012, TC-27-013, TC-27-014, TC-27-RBAC-4)*
+*Обновлено: 2026-09-30 (Feature #32 — story #33: TC-32-001..TC-32-013, TC-32-RBAC-1, TC-32-RBAC-2)*
 
 | Feature | Story | AC | TC | Priority | Type | E2E Automated |
 |---------|-------|----|----|----------|------|---------------|
@@ -165,3 +165,32 @@
 | TC-27-013 | Static: views/product-movement/report.php badge closures | — |
 | TC-27-014 | Static: views/product-movement/report.php footer array_sum | — |
 | TC-27-RBAC-4 | RunProductMovementTests.php | testBehaviorsContainsAccessControl, testAccessControlAllowsOnlyAuthenticatedRole |
+
+## Feature #32 — Fix sell/find modal pjax
+
+| Feature | Story | AC | TC | Priority | Type | E2E Automated |
+|---------|-------|----|----|----------|------|---------------|
+| Feature #32 | #33 | AC-1: ≥3 поисков подряд | TC-32-001 | Critical | Happy Path | No |
+| Feature #32 | #33 | AC-1: timeout fallback не закрывает модалку | TC-32-002 | High | Error Case | No |
+| Feature #32 | #33 | AC-2: фокус #name после поиска | TC-32-003 | Medium | Happy Path | No |
+| Feature #32 | #33 | AC-3: addSell работает после нескольких поисков | TC-32-004 | Critical | Happy Path | No |
+| Feature #32 | #33 | AC-4: URL хост-страницы не меняется | TC-32-005 | Critical | Happy Path | No |
+| Feature #32 | #33 | AC-4: нет pushState в истории браузера | TC-32-006 | High | Error Case | No |
+| Feature #32 | #33 | AC-5: крестик/Esc → location.replace работает | TC-32-007 | Critical | Happy Path | No |
+| Feature #32 | #33 | AC-5: pjax-событие не вызывает redirect | TC-32-008 | High | Error Case | No |
+| Feature #32 | #33 | AC-6: поведение одинаково на sell/index и index-v2 | TC-32-009 | High | Happy Path | No |
+| Feature #32 | #33 | RBAC: гость не видит модалку поиска | TC-32-RBAC-1 | High | RBAC | No |
+
+## Feature #32 Unit Test Mapping
+
+| TC | Unit Test File | Test Method |
+|----|---------------|-------------|
+| TC-32-001 | SellFindPjaxConfigTest.php | testFindViewHasGridFindId, testFindViewHasGridFindPjaxId |
+| TC-32-002 | SellFindPjaxConfigTest.php | testFindViewHasTimeout5000 |
+| TC-32-003 | SellFindPjaxConfigTest.php | testFindViewHasNamespacedSellFindHandler, testFindViewHasPjaxCompleteSellFindNamespace |
+| TC-32-004 | Static: views/sell/find.php rowOptions onClick=addSell | — |
+| TC-32-005 | SellFindPjaxConfigTest.php | testFindViewHasEnablePushStateFalse, testFindViewHasEnableReplaceStateFalse |
+| TC-32-006 | SellFindPjaxConfigTest.php | testFindViewHasEnablePushStateFalse |
+| TC-32-007 | SellFindPjaxConfigTest.php | testMainJsHasOffSellFindInHiddenHandler |
+| TC-32-008 | SellFindPjaxConfigTest.php | testMainJsHasSellModalHiddenWithOffSellFind |
+| TC-32-RBAC-1 | SellFindPjaxConfigTest.php | testSellControllerHasRenderAjaxFind |
