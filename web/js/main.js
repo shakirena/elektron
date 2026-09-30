@@ -17,6 +17,9 @@
     }
 })();
 function sellHomeUrl() {
+    // deleteAll() və s. digər bölmələrdə də (barcode, arrival) istifadə olunur —
+    // orada "index-v2" yoxdur, ona görə sell-dən kənarda həmişə "index".
+    if (window.location.pathname.indexOf('/sell/') === -1) return 'index';
     var stored = sessionStorage.getItem('sellDesign');
     if (stored === 'v2') return 'index-v2';
     if (stored === 'v1') return 'index';
@@ -389,6 +392,19 @@ $("#client_dialog").click(function(){
         .find("#clientContent1")
         .load($(this).attr("value"));
     //$('w0-container').focus();
+});
+// sell/index-v2: müştəri "chip"-i seçim pəncərəsini açır, içindəki "x" isə
+// (a.sv-client-remove → delete-client-v2) seçilmiş müştərini silir.
+$(".sv-client-chip").on('click', function(e){
+    if ($(e.target).closest('.sv-client-remove').length) return;
+    $("#client-modal").modal("show")
+        .find("#clientContent1")
+        .load($(this).data("value"));
+}).on('keydown', function(e){
+    if ((e.key === 'Enter' || e.key === ' ') && !$(e.target).closest('.sv-client-remove').length) {
+        e.preventDefault();
+        $(this).trigger('click');
+    }
 });
 
 

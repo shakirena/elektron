@@ -190,8 +190,10 @@ use app\models\Store;
 $script = <<< JS
 
 $(document).off('pjax:complete.sellFind')
-           .on('pjax:complete.sellFind', function () {
-               $("#name").focus();
+           .on('pjax:complete.sellFind', function (e) {
+               // Yalnız axtarış cədvəli yenilənəndə: sahəni təmizləyib növbəti axtarışa hazırlayırıq
+               if (e.target.id !== 'grid-find-pjax') return;
+               $("#name").val('').focus();
            });
   
 
