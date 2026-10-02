@@ -21,6 +21,11 @@ class MonthlySverkaReport
     const NOT_EXPENSE_TYPES = [2, 57];
     /** Типы costs с type=1, которые являются выручкой/оплатой клиента, а не сторонним поступлением. */
     const NOT_OTHER_INCOME_TYPES = [1, 3, 56];
+    /**
+     * Анонимный клиент «müştəri»: его минусовый баланс — накопленные с 2023 г. возвраты
+     * анонимным покупателям, а не переплаты. В Portfel и «Müştəri artıq ödənişləri» не входит.
+     */
+    const ANON_CLIENT = 1;
 
     /** Штатные операции (маршруты), которые двигают склад, деньги и долги. */
     const NORMAL_ROUTES = [
@@ -63,6 +68,9 @@ class MonthlySverkaReport
         )->queryAll();
         $portfel = 0; $portfelMinus = 0; $minusClients = [];
         foreach ($balances as $row) {
+            if ((int) $row['id_client'] === self::ANON_CLIENT) {
+                continue;
+            }
             $b = round((float) $row['b'], 2);
             if ($b > 0) {
                 $portfel += $b;
@@ -327,6 +335,12 @@ class MonthlySverkaReport
 
         $normalU = 0; $totalU = 0; $groups = []; $events = [];
         foreach ($rows as $row) {
+            if ($row['tbl'] === 'dclient') {
+                $data = json_decode($row['action'] === 'D' ? $row['old_data'] : $row['new_data'], true) ?: [];
+                if (isset($data['id_client']) && (int) $data['id_client'] === self::ANON_CLIENT) {
+                    continue; // баланс анонимного клиента в итог не входит
+                }
+            }
             $effect = self::neticeEffect($row);
             if ($effect == 0 && (float) $row['d_profit'] == 0) {
                 continue;

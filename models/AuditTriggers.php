@@ -11,6 +11,9 @@ use yii\db\Connection;
  * JSON для old_data/new_data собирается через CONCAT/REPLACE; спецсимволы —
  * через CHAR(n USING utf8), чтобы не зависеть от sql_mode NO_BACKSLASH_ESCAPES.
  * Все значения пишутся строками ("119"), PHP приводит их к числам сам.
+ *
+ * created_at = @app_now (время PHP, как у документов и снимков); NOW() — только для правок
+ * вне программы. Часовые пояса PHP и MySQL могут отличаться (локально +3 и +4).
  */
 class AuditTriggers
 {
@@ -95,7 +98,7 @@ class AuditTriggers
             };
             $insert = function ($rowId, $action, $docDate, array $d, $old, $new) use ($table) {
                 return "INSERT INTO audit_log (created_at, user_id, route, tbl, row_id, action, doc_date, d_stok, d_portfel, d_kassa, d_borc, d_profit, old_data, new_data)
-                        VALUES (NOW(), @app_user_id, @app_route, '$table', $rowId, '$action', $docDate,
+                        VALUES (COALESCE(@app_now, NOW()), @app_user_id, @app_route, '$table', $rowId, '$action', $docDate,
                                 {$d['d_stok']}, {$d['d_portfel']}, {$d['d_kassa']}, {$d['d_borc']}, {$d['d_profit']}, $old, $new)";
             };
 

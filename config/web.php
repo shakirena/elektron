@@ -10,9 +10,10 @@ $config = [
     'on beforeAction' => function ($event) {
         try {
             $user = Yii::$app->user->isGuest ? null : Yii::$app->user->identity->id_user;
-            Yii::$app->db->createCommand('SET @app_user_id = :u, @app_route = :r', [
+            Yii::$app->db->createCommand('SET @app_user_id = :u, @app_route = :r, @app_now = :t', [
                 ':u' => $user,
                 ':r' => $event->action->uniqueId,
+                ':t' => date('Y-m-d H:i:s'), // время PHP — как у дат документов и снимков
             ])->execute();
         } catch (\Exception $e) {
             Yii::warning('audit_log context: ' . $e->getMessage());
