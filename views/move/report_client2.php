@@ -17,6 +17,7 @@ use app\models\Returnp;
 use app\models\Product;
 use app\models\Transfer;
 use app\models\Client;
+use app\models\PaymentKassa;
 /* @var $this yii\web\View */
 /* @var $searchModel app\models\ArrivalSearch */
 /* @var $dataProvider yii\data\ActiveDataProvider */
@@ -31,6 +32,7 @@ $this->title = 'Arrivals';
 			<th  width="50%">Qeyd</th>
 			<th>Alıb</th>
 			<th>Ödənilib</th>
+			<th>Kassa</th>
 			<th>İadə</th>
 			<th>Yekun borc<br> qalığı</th>
 			<th>Qeyd</th>
@@ -38,6 +40,7 @@ $this->title = 'Arrivals';
         <tbody>
         <?php echo "<tr><td colspan='10' class='danger'>Müştəri: $client</td> </tr>"; ?>
         <?php
+        $kassaMap = PaymentKassa::forDclients($model);
         $debt=round($current,2);$sum=0;
 		$sum_debt=0;$sum_voz=0;
 		$bonus_sum = 0;
@@ -45,6 +48,7 @@ $this->title = 'Arrivals';
 		
 							echo "<tr>
 									<td colspan=2>Carı borc</td>	
+									<td></td>
 									<td></td>
 									<td></td>
 									<td></td>
@@ -71,6 +75,7 @@ $this->title = 'Arrivals';
 								<td>$sell[sum]</td>	
 								<td></td>
 								<td></td>
+								<td></td>
 								<td>$debt</td>
 								<td></td>
 
@@ -83,11 +88,13 @@ $this->title = 'Arrivals';
 							
 							if ($move[sum]!=0) {
 								$debt=round($debt - $move[sum],2);
+								$kassaText = htmlspecialchars(PaymentKassa::describeSale($kassaMap, $move['number'], $move['sum'], $move['bonus']));
 								 echo "<tr>
 									<td>$move[datetime] </td>
 									<td>Ödənib </td>
 									<td></td>	
 									<td>$move[sum]</td>
+									<td>$kassaText</td>
 									<td></td>
 									<td>$debt</td>
 									<td></td>
@@ -102,6 +109,7 @@ $this->title = 'Arrivals';
 									<td> Pul vesayti</td>
 									<td>$move[debt]</td>	
 									<td></td>
+									<td>".htmlspecialchars(PaymentKassa::describePayment($kassaMap, $move['id']))."</td>
 									<td></td>
 									<td>$debt</td>
 									<td>$move[note]</td>
@@ -128,6 +136,7 @@ $this->title = 'Arrivals';
 										<td><a href='../returnp/report?number=$move[number]'> Iyadə sənədi ($move[number])  tarixdən ($return->nameProduct, say $return->quantity)</a></td>
 										<td></td>	
 										<td></td>
+										<td></td>
 										<td>$move[debt]</td>
 										<td>$debt</td>
 										<td>$move[note]</td>				
@@ -145,11 +154,13 @@ $this->title = 'Arrivals';
 								$debt=round($debt+$move[debt],2);
 								$move[debt]=-$move[debt];
 								$sum=round($sum+$move[debt],2);
+								$kassaText = htmlspecialchars(PaymentKassa::describePayment($kassaMap, $move['id']));
 								echo "<tr>
 								<td>$move[datetime] </td>
 								<td>Ödənib</td>
 								<td></td>	
 								<td>$move[debt]</td>
+								<td>$kassaText</td>
 								<td></td>	
 								<td>$debt</td>
 								<td>$move[note]</td>				
@@ -165,6 +176,7 @@ $this->title = 'Arrivals';
 								<td colspan=2>Итог</td>
 								<td>$sum_debt</td>	
 								<td>$sum</td>
+								<td></td>
 								<td>$sum_voz</td>
 								<td>$debt</td>
 								<td></td>		

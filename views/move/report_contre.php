@@ -17,6 +17,7 @@ use app\models\Arrival;
 use app\models\Transfer;
 use app\models\ReturnArrival;
 use app\models\Client;
+use app\models\PaymentKassa;
 /* @var $this yii\web\View */
 /* @var $searchModel app\models\ArrivalSearch */
 /* @var $dataProvider yii\data\ActiveDataProvider */
@@ -30,16 +31,19 @@ $this->title = 'Arrivals';
         <th>Tarix</th>
         <th>Borc</th>
         <th>Ödənilib</th>
+        <th>Kassa</th>
 		<th>Vozvrat</th>
         <th>Yekun qalıq</th>
 		
         </thead>
         <tbody>
 		<?php 
+		$kassaMap = PaymentKassa::forDebts($model);
 		$sum=$current->sum;$sum_usd=$current->sum_usd;
 							echo "<tr>
 								<td>Текущий долг</td>
 								<td></td>	
+								<td></td>
 								<td></td>
 								<td></td>
 								<td>$sum</td>
@@ -58,22 +62,44 @@ $this->title = 'Arrivals';
 									<td></td>
 									<td></td>
 									<td></td>
+									<td></td>
 																
 								</tr>";
 							}
-							else 
+							else
 							{
-								$sum=$sum+$move[debt];
+								// Сумма строки товара, а не всего документа: иначе документ из N товаров
+								// прибавлялся к остатку N раз.
+								$line = round($arrival->price * $arrival->quantity, 2);
+								$docLines = (isset($docLines) ? $docLines : 0) + $line;
+								$sum=round($sum+$line,2);
 							 echo "<tr>
 									<td>$arrival->nameProduct( $move[datatime] tarixdən)</td>
-									<td>$move[debt]</td>	
+									<td>$line</td>
+									<td></td>
 									<td></td>
 									<td></td>
 									<td>$sum</td>
-																
+
 							 </tr>";
 							}
 						}
+						if ($move['sum_usd'] <= 0) {
+							// Разница между долгом по документу и суммой строк (скидка, удалённые строки и т.п.)
+							$docDiff = round($move['debt'] - (isset($docLines) ? $docLines : 0), 2);
+							if (abs($docDiff) > 0.009) {
+								$sum = round($sum + $docDiff, 2);
+								echo "<tr>
+									<td>Sənəd №$move[number] üzrə fərq ( $move[datatime] tarixdən)</td>
+									<td>$docDiff</td>
+									<td></td>
+									<td></td>
+									<td></td>
+									<td>$sum</td>
+								</tr>";
+							}
+						}
+						unset($docLines);
 					}
 				else 
 					{
@@ -84,6 +110,7 @@ $this->title = 'Arrivals';
 								echo "<tr>
 								<td><a href='../return-arrival/report?number=$move[number]'> Vozvrat sənədi ($move[number]) $move[datatime] tarixdən ($return->nameProduct, say $return->quantity)</a></td>
 								<td></td>	
+								<td></td>
 								<td></td>
 								<td>$move[debt]</td>
 								<td>$sum</td>
@@ -103,6 +130,7 @@ $this->title = 'Arrivals';
 								<td> Ödənib $move[datatime] tarixdən</td>
 								<td></td>	
 								<td></td>
+								<td>".(isset($kassaMap[$move['id']]) ? htmlspecialchars($kassaMap[$move['id']]) : '')."</td>
 								<td></td>
 								<td></td>
 															
@@ -118,6 +146,7 @@ $this->title = 'Arrivals';
 								<td>Ödənib $move[datatime] tarixdən</td>
 								<td></td>	
 								<td>$move[debt]</td>
+								<td>".(isset($kassaMap[$move['id']]) ? htmlspecialchars($kassaMap[$move['id']]) : '')."</td>
 								<td></td>
 								<td>$sum</td>
 															
@@ -132,6 +161,7 @@ $this->title = 'Arrivals';
 					echo "<tr  class='danger'>
 								<td>Итог</td>
 								<td></td>	
+								<td></td>
 								<td></td>
 								<td></td>
 								<td>$sum</td>

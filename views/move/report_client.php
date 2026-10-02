@@ -16,6 +16,7 @@ use app\models\Costs;
 use app\models\Returnp;
 use app\models\Transfer;
 use app\models\Client;
+use app\models\PaymentKassa;
 /* @var $this yii\web\View */
 /* @var $searchModel app\models\ArrivalSearch */
 /* @var $dataProvider yii\data\ActiveDataProvider */
@@ -29,6 +30,7 @@ $this->title = 'Arrivals';
 			<th>Tarix</th>
 			<th>Alıb</th>
 			<th>Ödənilib</th>
+			<th>Kassa</th>
 			<th>Bonus ilə<br> ödənib</th>
 			<th>İadə</th>
 			<th>Yekun borc<br> qalığı</th>
@@ -37,8 +39,9 @@ $this->title = 'Arrivals';
 			<th>Qeyd</th>
         </thead>
         <tbody>
-        <?php echo "<tr><td colspan='9' class='danger'>Müştəri: $client</td> </tr>"; ?>
+        <?php echo "<tr><td colspan='10' class='danger'>Müştəri: $client</td> </tr>"; ?>
         <?php
+        $kassaMap = PaymentKassa::forDclients($model);
         $debt=round($current,2);$sum=0;
 		$sum_debt=0;$sum_voz=0;
 		$bonus_sum = 0;
@@ -47,6 +50,7 @@ $this->title = 'Arrivals';
 							echo "<tr>
 									<td>Carı borc</td>
 									<td></td>	
+									<td></td>
 									<td></td>
 									<td></td>
 									<td></td>
@@ -79,11 +83,16 @@ $this->title = 'Arrivals';
 
 							$bonus_count = $bonus_count + $bonus;
 
+							$kassaText = $move['number']
+								? PaymentKassa::describeSale($kassaMap, $move['number'], $move['sum'], $move['bonus'])
+								: PaymentKassa::describePayment($kassaMap, $move['id']);
+							$kassaText = htmlspecialchars($kassaText);
 							if ($move['number'])
 							 echo "<tr>
 									<td><a href='../sell/report1?number=$move[number]'> Satış (№$move[number]) $move[datetime] tarixdən</a></td>
 									<td>$move[debt]</td>
 									<td>$move[sum]</td>
+									<td>$kassaText</td>
 									<td>$move[bonus]</td>
 									<td></td>
 									<td>$debt</td>
@@ -96,6 +105,7 @@ $this->title = 'Arrivals';
 									<td> Pul vesayti $move[datetime] tarixdən</td>
 									<td>$move[debt]</td>
 									<td>$move[sum]</td>
+									<td>$kassaText</td>
 									<td>$move[bonus]</td>
 									<td></td>
 									<td>$debt</td>
@@ -123,6 +133,7 @@ $this->title = 'Arrivals';
 										<td><a href='../returnp/report?number=$move[number]'> Iyadə sənədi ($move[number]) $move[datetime] tarixdən ($return->nameProduct, say $return->quantity)</a></td>
 										<td></td>	
 										<td></td>
+										<td></td>
 										<td>$move[pos]</td>	
 										<td>$move[debt]</td>
 										<td>$debt</td>
@@ -143,10 +154,12 @@ $this->title = 'Arrivals';
 								$debt=round($debt+$move[debt],2);
 								$move[debt]=-$move[debt];
 								$sum=round($sum+$move[debt],2);
+								$kassaText = htmlspecialchars(PaymentKassa::describePayment($kassaMap, $move['id']));
 								echo "<tr>
 								<td>Ödənib  $move[datetime] tarixdən</td>
 								<td></td>	
 								<td>$move[debt]</td>
+								<td>$kassaText</td>
 								<td></td>
 								<td></td>	
 								<td>$debt</td>
@@ -165,6 +178,7 @@ $this->title = 'Arrivals';
 								<td>Итог</td>
 								<td>$sum_debt</td>
 								<td>$sum</td>
+								<td></td>
 								<td>$bonus_sum</td>
 								<td>$sum_voz</td>
 								<td>$debt</td>
@@ -185,14 +199,14 @@ $this->title = 'Arrivals';
 						$sellExists = \app\models\Sell::find()->where(['number' => $op->number])->exists();
 						if (!$sellExists) {
 							if (!$hasOrphan) {
-								echo "<tr class='warning'><td colspan='9'><strong>Diaqnostika: ödənişlər satış olmadan (sell cədvəlində tapılmadı)</strong></td></tr>";
+								echo "<tr class='warning'><td colspan='10'><strong>Diaqnostika: ödənişlər satış olmadan (sell cədvəlində tapılmadı)</strong></td></tr>";
 								$hasOrphan = true;
 							}
 							\Yii::warning(
 								"[report-client] Orphan payment: dclient.id={$op->id}, number={$op->number}, id_client={$op->id_client}, debt={$op->debt}, datetime={$op->datetime}",
 								'report-client'
 							);
-							echo "<tr class='warning'><td colspan='9'>Ödəniş №{$op->number} ({$op->datetime}) — satış tapılmadı (id={$op->id})</td></tr>";
+							echo "<tr class='warning'><td colspan='10'>Ödəniş №{$op->number} ({$op->datetime}) — satış tapılmadı (id={$op->id})</td></tr>";
 						}
 					}
 		?>

@@ -177,9 +177,9 @@ class MoveController extends Controller
         $date2.=' 23:59:59';
 		
 	if ($type==1) {
-				$model=Debt::find()->andWhere("datatime>='$date1' AND datatime<='$date2'")->where(["id_contr" =>$id])->orderBy("datatime ASC")->all();
+				$model=Debt::find()->where(["id_contr" =>$id])->andWhere('datatime>=:d1 AND datatime<=:d2', [':d1' => $date1, ':d2' => $date2])->orderBy("datatime ASC")->all();
 				$debt=Debt::find()->select("sum(debt) as sum,sum(sum_usd) as sum_usd")->where(["id_contr" =>$id])->one();
-				$current=Debt::find()->select("sum(debt) as sum,sum(sum_usd) as sum_usd")->where(["id_contr" =>$id])->andWhere("datatime<'$date1'")->one();
+				$current=Debt::find()->select("sum(debt) as sum,sum(sum_usd) as sum_usd")->where(["id_contr" =>$id])->andWhere('datatime<:d1', [':d1' => $date1])->one();
 				$client=Contractor::find()->where(["id" =>$id])->one()->name;
 				return $this->render('report_contre1', [
 					'model' => $model,
@@ -189,9 +189,9 @@ class MoveController extends Controller
 				]);
 	}
      else 
-	   	$model=Debt::find()->andWhere("datatime>='$date1' AND datatime<='$date2'")->where(["id_contr" =>$id])->orderBy("datatime ASC")->all();
+	   	$model=Debt::find()->where(["id_contr" =>$id])->andWhere('datatime>=:d1 AND datatime<=:d2', [':d1' => $date1, ':d2' => $date2])->orderBy("datatime ASC")->all();
 				$debt=Debt::find()->select("sum(debt) as sum,sum(sum_usd) as sum_usd")->where(["id_contr" =>$id])->one();
-				$current=Debt::find()->select("sum(debt) as sum,sum(sum_usd) as sum_usd")->where(["id_contr" =>$id])->andWhere("datatime<'$date1'")->one();
+				$current=Debt::find()->select("sum(debt) as sum,sum(sum_usd) as sum_usd")->where(["id_contr" =>$id])->andWhere('datatime<:d1', [':d1' => $date1])->one();
 				$client=Contractor::find()->where(["id" =>$id])->one()->name;
 				return $this->render('report_contre', [
 					'model' => $model,
