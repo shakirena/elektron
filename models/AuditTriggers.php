@@ -15,6 +15,19 @@ use yii\db\Connection;
 class AuditTriggers
 {
     /**
+     * Условие «строка подтверждена» — черновики (непроведённый приход, непроданная строка)
+     * в журнал не пишутся. Для UPDATE пишется, если строка подтверждена до ИЛИ после
+     * изменения — так видны и проведение (0→1), и отмена (1→0).
+     */
+    public static function conditions()
+    {
+        return [
+            'arrival' => 'X.received=1',
+            'sell' => 'X.sold=1',
+        ];
+    }
+
+    /**
      * Таблица => [колонка даты документа, поля для old/new_data, [колонка d_* => выражение от строки X]]
      */
     public static function tables()
@@ -24,8 +37,8 @@ class AuditTriggers
                 ['id_product', 'id_store', 'quantity', 'rest', 'price', 'received', 'postponed', 'number', 'id_contr', 'datetime'],
                 ['d_stok' => 'IF(X.received=1, X.price*X.rest, 0)']],
             'sell' => ['datetime',
-                ['id_product', 'id_store', 'quantity', 'price', 'sum', 'price_ar', 'earnings', 'number', 'id_client', 'returnp', 'datetime'],
-                ['d_profit' => 'X.earnings']],
+                ['id_product', 'id_store', 'quantity', 'price', 'sum', 'price_ar', 'earnings', 'number', 'id_client', 'returnp', 'sold', 'datetime'],
+                ['d_profit' => 'IF(X.sold=1, X.earnings, 0)']],
             'costs' => ['datetime',
                 ['id_type', 'sum', 'id_kassa', 'from_kassa', 'id_client', 'note', 'datetime'],
                 ['d_kassa' => 'X.sum']],
@@ -86,11 +99,21 @@ class AuditTriggers
                                 {$d['d_stok']}, {$d['d_portfel']}, {$d['d_kassa']}, {$d['d_borc']}, {$d['d_profit']}, $old, $new)";
             };
 
-            $result["audit_{$table}_ai"] = "CREATE TRIGGER audit_{$table}_ai AFTER INSERT ON `$table` FOR EACH ROW "
-                . $insert('NEW.id', 'I', "NEW.`$dateCol`", $eff('NEW', ''), 'NULL', self::jsonObject('NEW', $fields));
+            $cond = isset(self::conditions()[$table]) ? self::conditions()[$table] : '1=1';
+            $condNew = str_replace('X.', 'NEW.', $cond);
+            $condOld = str_replace('X.', 'OLD.', $cond);
 
-            $result["audit_{$table}_ad"] = "CREATE TRIGGER audit_{$table}_ad AFTER DELETE ON `$table` FOR EACH ROW "
-                . $insert('OLD.id', 'D', "OLD.`$dateCol`", $eff('OLD', '-'), self::jsonObject('OLD', $fields), 'NULL');
+            $result["audit_{$table}_ai"] = "CREATE TRIGGER audit_{$table}_ai AFTER INSERT ON `$table` FOR EACH ROW BEGIN
+                IF $condNew THEN
+                    " . $insert('NEW.id', 'I', "NEW.`$dateCol`", $eff('NEW', ''), 'NULL', self::jsonObject('NEW', $fields)) . ";
+                END IF;
+            END";
+
+            $result["audit_{$table}_ad"] = "CREATE TRIGGER audit_{$table}_ad AFTER DELETE ON `$table` FOR EACH ROW BEGIN
+                IF $condOld THEN
+                    " . $insert('OLD.id', 'D', "OLD.`$dateCol`", $eff('OLD', '-'), self::jsonObject('OLD', $fields), 'NULL') . ";
+                END IF;
+            END";
 
             $changed = [];
             foreach ($fields as $f) {
@@ -102,7 +125,7 @@ class AuditTriggers
                 $dUpd[$col] = "($expr) - ({$dOld[$col]})";
             }
             $result["audit_{$table}_au"] = "CREATE TRIGGER audit_{$table}_au AFTER UPDATE ON `$table` FOR EACH ROW BEGIN
-                IF " . implode(' OR ', $changed) . " THEN
+                IF ($condOld OR $condNew) AND (" . implode(' OR ', $changed) . ") THEN
                     " . $insert('NEW.id', 'U', "NEW.`$dateCol`", $dUpd, self::jsonObject('OLD', $fields), self::jsonObject('NEW', $fields)) . ";
                 END IF;
             END";
