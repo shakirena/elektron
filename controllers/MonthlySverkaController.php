@@ -53,11 +53,15 @@ class MonthlySverkaController extends Controller
 
     /**
      * @param int|null $base id снимка для сравнения (по умолчанию — последний)
-     * @param string|null $from начало периода доходов/расходов (Y-m-d или Y-m-dTH:i)
-     * @param string|null $to   конец периода включительно (Y-m-d или Y-m-dTH:i)
+     * @param string|null $from      начало периода доходов/расходов (Y-m-d)
+     * @param string|null $to        конец периода (Y-m-d; без времени — весь день включительно)
+     * @param string|null $from_time необязательное время начала (H:i)
+     * @param string|null $to_time   необязательное время конца (H:i)
      */
-    public function actionIndex($base = null, $from = null, $to = null)
+    public function actionIndex($base = null, $from = null, $to = null, $from_time = null, $to_time = null)
     {
+        $from = self::joinDateTime($from, $from_time);
+        $to = self::joinDateTime($to, $to_time);
         $snapshots = MonthlySverka::find()->orderBy(['datetime' => SORT_DESC])->all();
         $baseModel = null;
         if ($base) {
@@ -103,6 +107,16 @@ class MonthlySverkaController extends Controller
      * включает весь день (граница — начало следующего дня, сравнение строгое).
      * @return string|null
      */
+    private static function joinDateTime($date, $time)
+    {
+        $date = trim((string) $date);
+        $time = trim((string) $time);
+        if ($date === '') {
+            return null;
+        }
+        return $time === '' ? $date : $date . ' ' . $time;
+    }
+
     private static function parseDate($value, $isEnd)
     {
         $value = trim(str_replace('T', ' ', (string) $value));
