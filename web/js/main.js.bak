@@ -60,6 +60,7 @@ $("#selectKassa").change(function(){
         });
    
 });
+
 function deleteArrival(id)
 {
     $.get('delete2', {id:id},function(){
@@ -153,7 +154,7 @@ checkboxes=document.getElementsByName('select[]');
     }
 
 }
-
+/*
 function addProduct() {
     if ($('#type5').val()) id=$('#type5').val();
     else  if ($('#type4').val()) id=$('#type4').val();
@@ -167,7 +168,7 @@ function addProduct() {
         .load("create-product?id="+id);
 
 
-};
+};*/
 function editTypeProduct() {
     $("#type-create").modal("show")
         .find("#modalContent")
@@ -570,7 +571,7 @@ function receivedArrival(store,contractor,date,tmp)
 					
 						setTimeout(function(){
 								$.get('received', {store:store,contractor:contractor,date:date},function(){
-								window.location.replace("index");
+								    window.location.replace("index");
 								});
 						
 						   },2000);
@@ -979,11 +980,11 @@ if (flag) {
 
 	setTimeout(function(){
 		if (flag) {
-			$.get('check', {}, function (date) {
-					var flag;
-					flag=date;	
+			//$.get('check', {}, function (date) {
+				//	var flag;
+					//flag=date;	
 				
-					if (flag==1)  {
+				//	if (flag==1)  {
 						$.get('check-rest', {store:store}, function (date) {
 							flag=date;	
 				
@@ -995,16 +996,16 @@ if (flag) {
 			
 									setTimeout(function(){
 														$.get('received', {money: money,postponed:0,date:date,rate:rate,store:store,user:user,discount:discount,kassa:kassa,virtual:virtual}, function () {
-															window.location.replace("index")
+															//window.location.replace("index")
 													});
 										
 											},200);	
 							}
 							else alert("Bu maldan <"+ date+ "> anbarda yoxdur və ya azdır");
 						});
-					}
-					else alert("Satış qiyməti minimumdan aşağıdır!");
-				})
+					//}
+					//else alert("Satış qiyməti minimumdan aşağıdır!");
+			//	})
 				}
 			},200);	;
 	
@@ -1025,12 +1026,12 @@ function addProduct(neww)
 				}
 				
 					$.ajax({
-					url:     'create', //url страницы (action_ajax_form.php)
+					url:     'create-product', //url страницы (action_ajax_form.php)
 					type:     "POST", //метод отправки
 					dataType: "html", //формат данных
 					data: $("form").serialize(),  // Сеарилизуем объект
 					success: function(response) { //Данные отправлены успешно
-							window.location.replace("index")
+							//window.location.replace("index")
 					},
 					
 				});
@@ -1192,7 +1193,7 @@ function editProcent(procent,price)
     //pricesell=price* $("#proc").val()/100;
     $.get('procent-edit', {procent: procent,price: price},function(date){
 
-        $("#pricesell").val(date);
+        $("#price").val(date);
 		editPack();
 
     });

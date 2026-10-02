@@ -76,7 +76,7 @@ class SiteController extends Controller
 			 Yii::$app->session->set('show',1);
 			if (Yii::$app->user->identity->id_role==4)
 				return $this->redirect(Url::to(['transfer/index2']));
-			else return $this->redirect(Url::to(['sell/index']));
+			else return $this->redirect(Url::to(['sell/index-v2']));
         }
         return $this->render('login', [
             'model' => $model,

@@ -52,12 +52,6 @@ function validateCancelNumber($number) {
     return true;
 }
 
-function resolveSellNumber($existingDclient) {
-    return ($existingDclient !== null && $existingDclient->number !== null)
-        ? (int)$existingDclient->number
-        : 0;
-}
-
 function simulateDclientDeleteBranch($dclient) {
     $deleted = false;
     if ($dclient !== null) {
@@ -120,41 +114,6 @@ runTest('testNumberCastToInt', function() {
     $number = (int)$number;
     if ($number !== 99) throw new \RuntimeException("Expected 99, got $number");
     if (!is_int($number)) throw new \RuntimeException("Expected int type");
-});
-
-echo "\n=== ActionReceivedDebtNumberTest (Story #21) ===\n";
-
-runTest('testExistingDclientWithNumberReturnsNumber', function() {
-    $existing = (object)['number' => 15];
-    $result = resolveSellNumber($existing);
-    if ($result !== 15) throw new \RuntimeException("Expected 15, got $result");
-});
-runTest('testExistingDclientNumberCastToInt', function() {
-    $existing = (object)['number' => '42'];
-    $result = resolveSellNumber($existing);
-    if ($result !== 42) throw new \RuntimeException("Expected 42, got $result");
-    if (!is_int($result)) throw new \RuntimeException("Expected int type");
-});
-runTest('testExistingDclientWithNullNumberReturnsSentinel', function() {
-    $existing = (object)['number' => null];
-    $result = resolveSellNumber($existing);
-    if ($result !== 0) throw new \RuntimeException("Expected 0, got $result");
-});
-runTest('testNullExistingDclientReturnsSentinel', function() {
-    $result = resolveSellNumber(null);
-    if ($result !== 0) throw new \RuntimeException("Expected 0, got $result");
-});
-runTest('testResultIsNeverNull', function() {
-    $r1 = resolveSellNumber(null);
-    $r2 = resolveSellNumber((object)['number' => null]);
-    $r3 = resolveSellNumber((object)['number' => 7]);
-    if ($r1 === null || $r2 === null || $r3 === null) {
-        throw new \RuntimeException("Result must never be null");
-    }
-});
-runTest('testSentinelIsZeroNotNegative', function() {
-    $result = resolveSellNumber(null);
-    if ($result < 0) throw new \RuntimeException("Sentinel must be >= 0, got $result");
 });
 
 echo "\n=== CostsActionDeleteNullSafeTest (Story #22) ===\n";

@@ -16,6 +16,7 @@ use kartik\select2\Select2;
 use app\models\TypeProduct;
 use app\models\Kassa;;
 use app\components\PushAll;
+use app\models\DisplaySettingsForm;
 /* @var $this yii\web\View */
 /* @var $searchModel app\models\SellSearch */
 /* @var $dataProvider yii\data\ActiveDataProvider */
@@ -24,6 +25,8 @@ use app\components\PushAll;
 if (  Yii::$app->user->identity->id_role==1)  $role=0;
 
 else $role=1;
+
+$displaySettings = DisplaySettingsForm::current();
 
 
 ?>
@@ -64,6 +67,18 @@ else $role=1;
 
     </div>
     <br>
+    <?php $quickAccessProducts = Product::find()->where(['quick_access' => 1])->orderBy('name')->all(); ?>
+    <?php if ($quickAccessProducts): ?>
+    <div class="quick-access-products" style="margin:5px 0 10px 0;">
+        <?php foreach ($quickAccessProducts as $qp): ?>
+            <?= Html::button(Html::encode($qp->name), [
+                'class' => 'btn btn-default',
+                'style' => 'margin:3px;',
+                'onclick' => 'addSellId(' . (int) $qp->id . ')',
+            ]) ?>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
     </div>
     <?php
 	Modal::begin([
@@ -189,7 +204,7 @@ else $role=1;
     ?>
     <div class="row noprint" >
      <?php Pjax::begin(['id' => 'grid-arrival' ]); ?>
-      
+
     <div class="col-md-9" >
 
     <?= GridView::widget([
@@ -277,38 +292,38 @@ else $role=1;
                 //'value' => 'valuePriceAr',
 				
             ],
-			[
-                'attribute' => 'sn',
-                'label' =>'S/N',
-                'width' => '120px',
-                'format' => 'raw',
-                'value' => function ($model, $index, $widget){
-                          
-                    return Html::input('text', 'sn []', $model->sn, ['class' => 'form-control input-sm', 'onChange' => "editSn($model->id,this.value)"]);
-                }
-            ],
+			
               [
                 'label'=> 'Ədədin <br>qyiməti',
                 'encodeLabel' => false,
-                'value' => 'priceTop'
+                'value' => 'priceTop',
+                'visible' => $displaySettings['show_unit_price'],
             ],
 
             [
                 'label'=> 'Qutuda <br>ədəd sayi',
                 'encodeLabel' => false,
-                'value' => 'pack'
+                'value' => 'pack',
+                'visible' => $displaySettings['show_box_count'],
             ],
 
-       
-			
+
+
             [
                 'label' => 'Anbarda <br> sayı',
                 'value' => 'sumCount',
                 'encodeLabel' => false,
             ],
-		
 
-           
+            [
+                'label' => 'Polka',
+                'value' => 'polka',
+                'encodeLabel' => false,
+                'visible' => $displaySettings['show_shelf'],
+            ],
+
+
+
 
             ['class' => 'kartik\grid\ActionColumn', 'template' => '{delete}'],
         ],
@@ -321,6 +336,7 @@ else $role=1;
 
 <div class="col-md-2" style="margin-top:-5em;margin-left:40px">
 	<? if (!$model->id_store) $store= 1; else $store=$model->id_store;?>
+	<div style="<?= $displaySettings['show_store'] ? '' : 'display:none' ?>">
 	    <?=" <b>Anbar</b>". Select2::widget([
         'data' => ArrayHelper::map(Store::find()->all(), 'id', 'name'),
         'name' => 'store',
@@ -332,8 +348,10 @@ else $role=1;
 
         ]
     ]); ?>
+	</div>
 	<br>
 	<?php  if (!$user) $user=Yii::$app->user->identity->id_user;?>
+	<div style="<?= $displaySettings['show_seller'] ? '' : 'display:none' ?>">
 	    <?=" <b>Satıcı</b>". Select2::widget([
         'data' => ArrayHelper::map(Users::find()->all(), 'id_user', 'fio'),
         'name' => 'user',
@@ -345,6 +363,7 @@ else $role=1;
 
         ]
     ]); ?>
+	</div>
       <?php Pjax::begin(['id' => 'grid-update' ]); ?>
     
         <div class="thumbnail" style=" background:#FFFFE4;width:280px; height:320px;font-size: 20px;  text-align:center;margin-top:15px">
@@ -354,7 +373,7 @@ else $role=1;
 		
             Verdi <i>(F9)</i> <input type="text" style="width: 80px; height:30px; margin-top:20px; text-align:center;" class="text ui-widget-content ui-corner-all" name="money" id="money"  />+<input id="virtual" type="text" disabled style="width:60px;height:30px;" class="text ui-widget-content ui-corner-all">
 			
-			Güzəşt <input type="text" style="width: 80px; height:30px; margin-top:20px; text-align:center;" class="text ui-widget-content ui-corner-all" name="money" id="discount"  />&nbsp &nbsp &nbsp &nbsp  &nbsp 
+			<span style="<?= $displaySettings['show_discount'] ? '' : 'display:none' ?>">Güzəşt <input type="text" style="width: 80px; height:30px; margin-top:20px; text-align:center;" class="text ui-widget-content ui-corner-all" name="money" id="discount"  />&nbsp &nbsp &nbsp &nbsp  &nbsp </span>
 			<br>
            
 			 <?= Select2::widget([
@@ -398,12 +417,12 @@ else $role=1;
         ])."</div>" ;?>
 <?php 
 	
-	 if (  Yii::$app->user->identity->id_role!=1) {
+	
 	  if (Yii::$app->session->get('id_client')!=1)
         echo  Html::button('<i class="glyphicon glyphicon-ok"></i> <i class="glyphicon glyphicon-send"></i> OK (F8)', ['class' => 'btn btn-success','id'=>'received', 'onclick' => 'receivedSell($("#money").val(),$("#date").val(),$("#rate").val(),$("#store2").val(),$("#user").val(),1,$("#discount").val(),$("#kassa").val(),$("#virtual").val())']); 
 		else
 		  echo  Html::button('<i class="glyphicon glyphicon-ok"></i> <i class="glyphicon glyphicon-send"></i> OK (F8)', ['class' => 'btn btn-success','id'=>'received', 'onclick' => 'receivedSell($("#money").val(),$("#date").val(),$("#rate").val(),$("#store2").val(),$("#user").val(),0,$("#discount").val(),$("#kassa").val(),$("#virtual").val())']); 
-		  }
+		  пр
 	 ?>
 	
          <?= Html::button('<i class="glyphicon glyphicon-ok"></i> <i class="glyphicon glyphicon-time"></i> &nbsp ', ['class' => 'btn btn-info','id'=>'postponed1', 'onclick' => 'receivedSell2($("#money").val(),$("#date").val(),$("#rate").val(),$("#store2").val(),$("#user").val(),$("#discount").val())']); ?> 
@@ -413,7 +432,7 @@ else $role=1;
 	   <?php
 			if (  Yii::$app->user->identity->id_role!=1){
 	  
-			echo Html::button('<i class="glyphicon glyphicon-share-alt"></i> Vozrat', ['class' => 'btn btn-warning', 'onclick' => 'returnSellPassword()']); 
+			echo Html::button('<i class="glyphicon glyphicon-share-alt"></i> Vozrat', ['class' => 'btn btn-warning', 'onclick' => 'returnSellPassword()']);
 			} ?>
     </div>
 

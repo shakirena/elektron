@@ -17,6 +17,7 @@ use app\models\Arrival;
 use app\models\Transfer;
 use app\models\ReturnArrival;
 use app\models\Client;
+use app\models\Costs;
 /* @var $this yii\web\View */
 /* @var $searchModel app\models\ArrivalSearch */
 /* @var $dataProvider yii\data\ActiveDataProvider */
@@ -28,7 +29,9 @@ $this->title = 'Arrivals';
     <table class="table-rena kv-grid-table table table-bordered  kv-table-wrap">
         <thead>
         <th>Tarix</th>
+        <th>Kassa</th>
         <th>Borc</th>
+		<th>Qeyd</th>
         <th>Ödənilib</th>
 		<th>Vozvrat</th>
         <th>Yekun qalıq</th>
@@ -39,7 +42,9 @@ $this->title = 'Arrivals';
 		$sum=round($current->sum,2);$sum_usd=round($current->sum_usd,2);
 							echo "<tr>
 								<td>Текущий долг</td>
-								<td></td>	
+								<td></td>
+								<td></td>
+								<td></td>								
 								<td></td>
 								<td></td>
 								<td>$sum</td>
@@ -52,7 +57,9 @@ $this->title = 'Arrivals';
 							$sum_usd=round($sum_usd+$move[sum_usd],2);
 							echo "<tr>
 								<td><a href='../arrival/report1?number=$move[number]'> Prixod sənədi ($move[number]) $move[datatime] tarixdən</a></td>
-								<td></td>	
+								<td></td>
+								<td></td>
+								<td>$move[note]</td>									
 								<td></td>
 								<td></td>
 								<td></td>
@@ -64,7 +71,9 @@ $this->title = 'Arrivals';
 							$sum=round($sum+$move[debt],2);
 						 echo "<tr>
 								<td><a href='../arrival/report1?number=$move[number]'> Prixod sənədi ($move[number]) $move[datatime] tarixdən</a></td>
+								<td></td>
 								<td>$move[debt]</td>	
+								<td>$move[note]</td>	
 								<td></td>
 								<td></td>
 								<td>$sum</td>
@@ -80,7 +89,9 @@ $this->title = 'Arrivals';
 							$move[debt]=-$move[debt];
 								echo "<tr>
 								<td><a href='../return-arrival/report?id=$move[number]'> Vozvrat sənədi ($move[number]) $move[datatime] tarixdən ($return->nameProduct, say $return->quantity)</a></td>
-								<td></td>	
+								<td></td>
+								<td></td>
+								<td>$move[note]</td>									
 								<td></td>
 								<td>$move[debt]</td>
 								<td>$sum</td>
@@ -96,9 +107,13 @@ $this->title = 'Arrivals';
 							{
 								$sum_usd=round($sum_usd+$move[sum_usd],2);
 								$move[sum_usd]=-$move[sum_usd];
+								$kassaCost = Costs::find()->where(['fid' => $move[id], 'id_type' => 2])->one();
+								$kassaName = ($kassaCost && $kassaCost->idKassa) ? $kassaCost->idKassa->name : '';
 								echo "<tr>
 								<td> Ödənib $move[datatime] tarixdən</td>
-								<td></td>	
+								<td>$kassaName</td>
+								<td></td>
+								<td>$move[note]</td>									
 								<td></td>
 								<td></td>
 								<td></td>
@@ -111,9 +126,13 @@ $this->title = 'Arrivals';
 							{
 								$sum=round($sum+$move[debt],2);
 								$move[debt]=-$move[debt];
+								$kassaCost = Costs::find()->where(['fid' => $move[id], 'id_type' => 2])->one();
+								$kassaName = ($kassaCost && $kassaCost->idKassa) ? $kassaCost->idKassa->name : '';
 								echo "<tr>
 								<td>Ödənib $move[datatime] tarixdən</td>
+								<td>$kassaName</td>
 								<td></td>	
+								<td>$move[note]</td>	
 								<td>$move[debt]</td>
 								<td></td>
 								<td>$sum</td>
@@ -128,6 +147,8 @@ $this->title = 'Arrivals';
 				
 					echo "<tr  class='danger'>
 								<td>Итог</td>
+								<td></td>
+								<td></td>	
 								<td></td>	
 								<td></td>
 								<td></td>

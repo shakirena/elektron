@@ -88,8 +88,14 @@ class ClientController extends Controller
             Yii::$app->session->set('client',$client->fio);
             $model = new Sell2();
             $model->updateAll(['id_client'=>$id], ['sold' => 0,'id_user' =>Yii::$app->user->identity->id_user,'postponed'=>0]);
-     
-            return $this->redirect(['sell/index']);
+
+            // Bu forma sell/index VƏ sell/index-v2-dən açıla bilər (modal
+            // eynidir). Hansından gəldiyimizi Referer başlığından tapıb elə
+            // ora da qaytarırıq — əks halda kassir həmişə köhnə dizayna atılır.
+            $sellRoute = (Yii::$app->request->referrer && strpos(Yii::$app->request->referrer, 'index-v2') !== false)
+                ? 'sell/index-v2'
+                : 'sell/index';
+            return $this->redirect([$sellRoute]);
         } else {
             return $this->renderAjax('create', [
                 'model' => $model,

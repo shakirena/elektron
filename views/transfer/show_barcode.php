@@ -10,20 +10,15 @@ use yii\helpers\ArrayHelper;
 use app\models\Store;
 $this->title = 'Login::: Merinos';
 ?>
-<div class="container  ">
-   
-    <div class="col-md-2">
-		
-		<?php 
-			$i=0;
-			foreach ($products as $product) {
-			$i++;
-			echo "<button id=$i onclick='addSellId($product->id)'>$product->name</button><br><br>";
-			
-		}
-		?>
-    </div>
-    <div class="col-md-4"></div>
+<div style="padding:10px 4px;">
+
+    <?php
+        $i = 0;
+        foreach ($products as $product) {
+            $i++;
+            echo "<button id=$i onclick='addSellId($product->id)'>$product->name</button><br><br>";
+        }
+    ?>
 </div>
 <?php
 $script = <<< JS

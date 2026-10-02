@@ -762,7 +762,7 @@ $i++;
 	public function actionCheckBonus($barcode)
 	{
 		
-		  if (substr($barcode,0,2)==26 && strlen($barcode) == 13) {
+		  if (substr($barcode,0,2)==00 && strlen($barcode) == 4) {
 				$client = Client::find()->where(['barcode' => $barcode ])->one();
 				if ($client) {
 				Yii::$app->session->set('id_bonus', $client->id_client);
@@ -1002,7 +1002,7 @@ if ($product->id_product) {
         foreach ($model->find()->where(['sold' => 0,'postponed'=>0,'id_user'=>Yii::$app->user->identity->id_user])->all() as $row) {
             $arrival = Arrival::find()
                 ->select('sum(rest) as rest')
-                ->where(['id_product' => $row->id_product,'id_store'=>$store])
+                ->where(['id_product' => $row->id_product,'id_store'=>$store, 'postponed' => 0, 'received' => 1])
                 ->groupBy('id_product')
                 ->one();
             if (round($arrival->rest,4)>=round($row->quantity,4))
@@ -1015,8 +1015,27 @@ if ($product->id_product) {
         if ($flag==1) return 0;
         else return $flag;
     }
-public function actionCancel($number){
-	
+public function actionCancel($number = null){
+	if (!$number || !is_numeric($number) || (int)$number <= 0) {
+		throw new \yii\web\BadRequestHttpException('Invalid number parameter');
+	}
+	$number = (int)$number;
+
+	// FIX #19: Защита от отмены продажи при наличии реальных оплат.
+	// Если по этой продаже уже были оплаты (debt < 0 в таблице dclient),
+	// запрещаем отмену и логируем событие.
+	$hasPayments = Dclient::find()
+		->where(['number' => $number])
+		->andWhere(['<', 'debt', 0])
+		->exists();
+	if ($hasPayments) {
+		\Yii::warning(
+			"[actionCancel] Blocked cancel of sell number={$number}: existing payments found in dclient.",
+			'sell-cancel'
+		);
+		return $this->asJson(['error' => 'Bu satış üçün ödəniş mövcuddur. Ləğv etmək mümkün deyil.']);
+	}
+
 			foreach (Sell::find()->where(['number'=>$number])->all() as $row) {
 						$sell=new Sell2();
                        $sell->id_user=$row->id_user;
@@ -1174,7 +1193,7 @@ public function actionCancel($number){
                 // $row->delete();
                 $vse = 1;
 
-                foreach (Arrival::find()->where(['id_product' => $row->id_product,'id_store'=>$store])->andWhere("rest>0")->orderBy(['datetime' => SORT_ASC])->all() as $arrival) {
+                foreach (Arrival::find()->where(['id_product' => $row->id_product,'id_store'=>$store,'received'=>1, 'postponed'=>0])->andWhere("rest>0")->orderBy(['datetime' => SORT_ASC])->all() as $arrival) {
                     $quantity = $row->quantity;
 
                     if ($postponed == 0) {
@@ -1196,7 +1215,7 @@ public function actionCancel($number){
 
             }
             else {
-                $arrival=Arrival::find()->where(['id_product' => $row->id_product,'id_store'=>$store])->orderBy(['datetime' => SORT_DESC])->one();
+                $arrival=Arrival::find()->where(['id_product' => $row->id_product,'id_store'=>$store,'received'=>1, 'postponed'=>0])->orderBy(['datetime' => SORT_DESC])->one();
 
                         $arrival->rest = $arrival->rest - $row->quantity;
                         $arrival->save();
@@ -1498,7 +1517,7 @@ public function actionCancel($number){
     {
 		$searchModel = new DclientSearch();
 		$dataProvider = $searchModel->search(Yii::$app->request->queryParams);
-		$dataProvider->query->andWhere("debt_sum >0");
+		$dataProvider->query->having("debt_sum >0");
         return $this->render('dclient_print', [
             'searchModel' => $searchModel,
             'dataProvider' => $dataProvider,
@@ -1612,7 +1631,11 @@ public function actionCancel($number){
 		$debt=Dclient::find()->select("sum(debt) as debt")->where("(number!=$number  or number IS NULL) and id_client=$id")->one();
 		
 		$current=Dclient::find()->andWhere("number=$number")->andWhere(['id_client'=>$sum->id_client])->one();
-
+		foreach ( Sell::find()->where(['number' => $number])->all() as $model)
+		{
+			$discount = $discount + $model->quantity*( $model->getPriceSell() - $model->price) ;
+			
+		}
         return $this->renderAjax('print2',[
             'dataProvider' => $dataProvider,
             'money' => $money,
@@ -1622,6 +1645,7 @@ public function actionCancel($number){
 			'client'=>$sum->id_client,
 			'debt'=>round($debt->debt,2),
 			'date'=>$sum->datetime,
+			'discount' => $discount,
         ]);
 		
 		
@@ -1831,13 +1855,14 @@ public function actionCancel($number){
     }
 public function actionReceivedDebt($id,$sum,$note,$date,$kassa){
  $sum2=$sum;
- $dclient=Dclient::find()->where(["id_client" =>$id])->one();
- $sell=Sell::find()->where(['number'=>$dclient->number])->one()->id_user;         
-			
+ $existingDclient=Dclient::find()->where(["id_client" =>$id])->andWhere(['>', 'debt', 0])->one();
+ $sellNumber = ($existingDclient !== null && $existingDclient->number !== null) ? (int)$existingDclient->number : 0;
+
       	$dclient=new Dclient();
 		$dclient->debt=-$sum;
-          
+
             $dclient->id_client=$id;
+			$dclient->number=$sellNumber;
 			$dclient->note=$note;
             $dclient->datetime=$date.date(" H:i:s");
             $dclient->save();

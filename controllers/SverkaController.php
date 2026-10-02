@@ -44,12 +44,53 @@ class SverkaController extends Controller
      */
     public function actionIndex()
     {
-        $searchModel = new SverkaSearch(["id_store" =>  Yii::$app->session->get("sverka")]);
+        $storeId = Yii::$app->session->get("sverka");
+        $searchModel = new SverkaSearch(["id_store" => $storeId]);
         $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
         $sum_fakt=Sverka::find()->select("sum(quantity) as sum_fakt")
-            ->where(["id_store" =>  Yii::$app->session->get("sverka")])
+            ->where(["id_store" => $storeId])
             ->one();
+
+        // Faktiki (sayılan) qalıqla sistemdəki qalığın fərqini son alış
+        // qiymətiylə dəyərləndirib izafi/çatışmazlıq məbləğlərini hesablayırıq.
+        $surplusSum = 0;
+        $shortageSum = 0;
+        foreach (Sverka::find()->where(["id_store" => $storeId])->all() as $item) {
+            $diff = $item->getDifference();
+            if (!$diff) {
+                continue;
+            }
+            $priceSell = $item->getPriceSell();
+            $price = $priceSell ? $priceSell->price : 0;
+            if ($diff > 0) {
+                $surplusSum += $diff * $price;
+            } else {
+                $shortageSum += -$diff * $price;
+            }
+        }
+
         return $this->render('index', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+            'sum_fakt' => $sum_fakt->sum_fakt,
+            'surplusSum' => $surplusSum,
+            'shortageSum' => $shortageSum,
+        ]);
+    }
+
+    /**
+     * Cari anbar üçün sverka siyahısını çap üçün göstərir.
+     * @return mixed
+     */
+    public function actionPrint()
+    {
+        $searchModel = new SverkaSearch(["id_store" => Yii::$app->session->get("sverka")]);
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+        $sum_fakt = Sverka::find()->select("sum(quantity) as sum_fakt")
+            ->where(["id_store" => Yii::$app->session->get("sverka")])
+            ->one();
+
+        return $this->renderAjax('print', [
             'searchModel' => $searchModel,
             'dataProvider' => $dataProvider,
             'sum_fakt' => $sum_fakt->sum_fakt,

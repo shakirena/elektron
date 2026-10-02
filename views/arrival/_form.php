@@ -60,7 +60,7 @@ $model2=Arrival::find()->select("sum(rest) as rest")->where(["id_product"=>$mode
 	<?= $form->field($model, 'pack')->label("Qutuda ədəd sayi")->textInput(["value" => $model1->pack]) ?>
 	<?= $form->field($model, 'trade_price')->label("Topdan satış qiyməti")->textInput(["value" => $model1->trade_price]) ?>
 	<?= $form->field($model, 'pricesell_min')->label("Minimum satış qiyməti")->textInput(["value" => $model1->pricesell_min]) ?>
-	<!--<?= $form->field($model, 'polka')->textInput(["value" => $model1->polka]) ?>-->
+	<?= $form->field($model, 'polka')->textInput(["value" => $model1->polka]) ?>
     <div class="form-group">
         <?= Html::submitButton($model->isNewRecord ? 'Create' : 'Yaddaşa ver', ['class' => $model->isNewRecord ? 'btn btn-success' : 'btn btn-primary']) ?>
     </div>

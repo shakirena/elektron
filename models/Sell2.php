@@ -420,6 +420,9 @@ class Sell2 extends \yii\db\ActiveRecord
     public function getPriceTop(){
         return Arrival::find()->where(['id_product' =>$this->id_product])->orderBy("id DESC")->one()->price_top;
     }
+    public function getPolka(){
+        return Arrival::find()->where(['id_product' =>$this->id_product])->orderBy("id DESC")->one()->polka;
+    }
 
     public function getPack(){
         return Arrival::find()->where(['id_product' =>$this->id_product])->orderBy("id DESC")->one()->pack;

@@ -221,6 +221,18 @@ class ProductController extends Controller
     }
 
     /**
+     * Тумблер "Sürətli satış" в гриде товаров (быстрый доступ на панели продажи).
+     * @param integer $id
+     * @param integer $value
+     */
+    public function actionQuickAccess($id, $value)
+    {
+        $model = $this->findModel($id);
+        $model->quick_access = (int) $value ? 1 : 0;
+        $model->save(false);
+    }
+
+    /**
      * Deletes an existing Product model.
      * If deletion is successful, the browser will be redirected to the 'index' page.
      * @param integer $id

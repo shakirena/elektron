@@ -244,6 +244,11 @@ $quickTilePrice = function ($productId) {
         color:var(--sv-ink); border-radius:6px; padding:2px 4px;
     }
     .sell-v2 .sv-price-input:focus{background:var(--sv-paper); outline:1px solid var(--sv-accent);}
+    .sell-v2 .sv-sn-input{
+        width:110px; border:1px solid var(--sv-line, #ddd); background:transparent; font-size:13px;
+        color:var(--sv-ink); border-radius:6px; padding:2px 6px;
+    }
+    .sell-v2 .sv-sn-input:focus{background:var(--sv-paper); outline:1px solid var(--sv-accent);}
     .sell-v2 .sv-cart-empty{
         display:flex; flex-direction:column; align-items:center; justify-content:center;
         gap:8px; padding:50px 20px; color:var(--sv-ink-3); text-align:center; font-size:13px;
@@ -356,8 +361,7 @@ $quickTilePrice = function ($productId) {
                 </span>
                 <a href="delete-client-v2" class="sv-client-remove" title="Müştərini sil"><i class="glyphicon glyphicon-remove"></i></a>
             </div>
-            <?= Html::button('<i class="glyphicon glyphicon-user"></i>', ['value' => Url::to(['sell/client']), 'class' => 'sv-icon-btn-solo', 'id' => 'client_dialog', 'title' => 'Müştəri']) ?>
-
+            
             <div class="sv-header-actions">
                 <?= Html::button('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3 2"/></svg><span class="lbl">F6</span>', ['value' => Url::to(['sell/postponed']), 'class' => 'sv-icon-btn', 'id' => 'postponed_dialog', 'title' => 'Gözləmədə']) ?>
                 <?php if (Yii::$app->user->identity->id_role != 1): ?>
@@ -517,6 +521,15 @@ $quickTilePrice = function ($productId) {
                             'visible' => $displaySettings['show_shelf'],
                         ],
                         [
+                            'attribute' => 'sn',
+                            'label' => 'Qeyd',
+                            'visible' => $displaySettings['show_sn'],
+                            'format' => 'raw',
+                            'value' => function ($model) {
+                                return Html::input('text', 'sn[]', $model->sn, ['class' => 'sv-sn-input', 'maxlength' => 100, 'autocomplete' => 'off', 'onChange' => "editSn($model->id,this.value)"]);
+                            },
+                        ],
+                        [
                             'class' => 'kartik\grid\ActionColumn',
                             'template' => '{delete}',
                             'urlCreator' => function ($action, $model, $key, $index) {
@@ -597,6 +610,7 @@ $quickTilePrice = function ($productId) {
         </div>
 
         <div class="sv-secondary-btns">
+            <?= Html::button('<i class="glyphicon glyphicon-print"></i> İlkin çek', ['class' => 'sv-btn', 'title' => 'Satmadan çeki çap et', 'onclick' => 'previewChek($("#money").val(),$("#discount").val(),$("#user").val(),$("#kassa").val(),$("#virtual").val())']) ?>
             <?= Html::button('<i class="glyphicon glyphicon-time"></i> Gözlə <span class="sv-kbd">F6</span>', ['class' => 'sv-btn', 'id' => 'postponed1', 'onclick' => 'receivedSell2($("#money").val(),$("#date").val(),$("#rate").val(),$("#store2").val(),$("#user").val(),$("#discount").val())']) ?>
             <?= Html::button('<i class="glyphicon glyphicon-remove"></i> Ləğv et', ['class' => 'sv-btn sv-danger', 'onclick' => 'deleteAll()']) ?>
             <?php if (Yii::$app->user->identity->id_role != 1): ?>

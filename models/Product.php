@@ -11,6 +11,7 @@ use app\models\Image;
  * @property string $name
  * @property integer $id_type
  * @property string $bar_code
+ * @property boolean $quick_access
  *
  * @property Arrival[] $arrivals
  * @property Barcode[] $barcodes
@@ -37,6 +38,7 @@ class Product extends \yii\db\ActiveRecord
         return [
             [['id_type','name'], 'required'],
             [['id_type','boxing'], 'integer'],
+            [['quick_access'], 'boolean'],
             [['name'], 'string', 'max' => 255],
           
 			[['country'], 'string', 'max' => 255],
@@ -58,7 +60,8 @@ class Product extends \yii\db\ActiveRecord
             'barcode' => 'Barkodu',
 			 'country' => 'Ölkə',
             'article_number' => 'Artikul nomresi',
-			' boxing'=>'Blok'
+			' boxing'=>'Blok',
+            'quick_access' => 'Sürətli satış',
 
         ];
     }

@@ -44,6 +44,12 @@ else $role4=0;
 if (  Yii::$app->user->identity->id_role==1 ||  Yii::$app->user->identity->id_role==6  || Yii::$app->user->identity->id_role==2 || Yii::$app->user->identity->id_role==3 || Yii::$app->user->identity->id_role==4)  $role3=1;
 
 else $role3=0;
+
+$sellAction = Yii::$app->controller->id === 'sell' && Yii::$app->controller->action
+    ? Yii::$app->controller->action->id
+    : null;
+$isNewSellDesign = $sellAction === 'index-v2';
+$showDesignToggle = $sellAction === 'index' || $sellAction === 'index-v2';
 ?>
 
 <div class="wrap">
@@ -99,6 +105,7 @@ else $role3=0;
 					  ['label' => 'TOP satışlar', 'url' => ['/sell/report-top']],
                      //   ['label' => 'Ustalar', 'url' => ['/postponed/master']],
                       //  ['label' => 'Mal hərəkəti', 'url' =>['/move/index']],
+                      ['label' => 'Mal hərəkəti (tam)', 'url' => ['/product-movement/report']],
                        	['label' => 'Vozvrat ', 'url' => ['/returnp/index']],
                         ['label' => 'Vozvrat (şirkət)', 'url' => ['/return-arrival/report']],
                         ['label' => 'Transfer', 'url' => ['/transfer/report']],
@@ -144,8 +151,8 @@ else $role3=0;
                              
             ['label' => 'İdarə Etmə', 'url' =>  ['/admin/index']],
 $role1 ?
-            ['label' => 'Satış', 'url' => ['/sell/index']]:"",
-            Yii::$app->user->isGuest ? (
+            ['label' => 'Satış', 'url' => ['/sell/index-v2']]:"",
+               Yii::$app->user->isGuest ? (
                 ['label' => 'Login', 'url' => ['/site/login']]
             ) : (
                 '<li>'

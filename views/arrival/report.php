@@ -13,9 +13,12 @@ use app\models\Contractor;
 use app\models\TypeProduct;
 use app\models\Store;
 use kartik\select2\Select2;
+use app\models\DisplaySettingsForm;
 /* @var $this yii\web\View */
 /* @var $searchModel app\models\ArrivalSearch */
 /* @var $dataProvider yii\data\ActiveDataProvider */
+
+$displaySettings = DisplaySettingsForm::current();
 
 $this->title = 'Arrivals';
 //$this->params['breadcrumbs'][] = $this->title;
@@ -71,7 +74,7 @@ $this->title = 'Arrivals';
                             5=>GridView::F_SUM,
                             6=>GridView::F_SUM,
 							7=>GridView::F_SUM,
-							10=>GridView::F_SUM,
+							11=>GridView::F_SUM,
 
 
                         ],
@@ -82,7 +85,7 @@ $this->title = 'Arrivals';
 
                             6=> ['format'=>'number','decimals'=>2],
 							7=> ['format'=>'number','decimals'=>2],
-							10=> ['format'=>'number','decimals'=>2],
+							11=> ['format'=>'number','decimals'=>2],
                         ],
 						
                         'contentOptions' => [
@@ -142,6 +145,7 @@ $this->title = 'Arrivals';
                 'value'  => 'idProduct.article_number',
                 'format' => 'raw',
                 'width'  => '120px',
+                'visible' => $displaySettings['show_article_number'],
             ],
             [
                 'attribute' => 'quantity',
@@ -227,7 +231,7 @@ $this->title = 'Arrivals';
 
 
             ],
-			
+			['attribute' => 'polka', 'visible' => $displaySettings['show_shelf']],
             [   'attribute' => 'id_store',
 				 'label' => 'Filial',
 

@@ -13,9 +13,12 @@ use app\models\Contractor;
 use app\models\TypeProduct;
 use app\models\Store;
 use kartik\select2\Select2;
+use app\models\DisplaySettingsForm;
 /* @var $this yii\web\View */
 /* @var $searchModel app\models\ArrivalSearch */
 /* @var $dataProvider yii\data\ActiveDataProvider */
+
+$displaySettings = DisplaySettingsForm::current();
 
 $this->title = 'Arrivals';
 //$this->params['breadcrumbs'][] = $this->title;
@@ -179,6 +182,7 @@ $this->title = 'Arrivals';
                 'format' => 'raw',
                 'width'  => '120px',
                 'filter' => false,
+                'visible' => $displaySettings['show_article_number'],
             ],
 
 

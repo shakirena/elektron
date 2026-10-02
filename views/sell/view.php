@@ -2,6 +2,7 @@
 
 use yii\helpers\Html;
 use yii\widgets\DetailView;
+use app\models\DisplaySettingsForm;
 
 /* @var $this yii\web\View */
 /* @var $model app\models\Sell */
@@ -43,7 +44,7 @@ $this->params['breadcrumbs'][] = $this->title;
             'earnings',
             'flag',
             'returnp',
-            'sn',
+            ['attribute' => 'sn', 'visible' => DisplaySettingsForm::current()['show_sn']],
             'debt',
         ],
     ]) ?>

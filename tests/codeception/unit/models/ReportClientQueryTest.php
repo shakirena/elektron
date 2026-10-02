@@ -10,19 +10,28 @@ use yii\codeception\TestCase;
  * Тестирует логику фильтрации записей Dclient в представлении report_client:
  * - продажи с debt=0, sum=0 должны отображаться (ранее терялись)
  * - продажи с debt>0 или sum>0 всегда отображаются
- * - возвраты (debt<0, number>0) попадают в отдельную ветку
+ * - возвраты (debt<0, number>0, ЕСТЬ запись в returnp) попадают в отдельную ветку
  * - оплаты без number (debt<0, number=null) попадают в ветку оплат
+ * - оплаты с number>0, но БЕЗ записи в returnp — тоже оплата, не возврат
  * - защита от отмены продажи при наличии оплат
+ *
+ * Регрессия (2026-07-31): actionReceivedDebt проставлял в Dclient.number номер
+ * произвольной (обычно самой старой) непогашенной продажи клиента. Отчёт
+ * трактовал любую запись с debt<0 и number>0 как "возврат" — из-за чего
+ * обычное погашение долга отображалось как "Iyadə sənədi". Исправлено: и
+ * report_client.php, и actionReceivedDebt (number теперь остаётся NULL для
+ * погашений — они не привязаны к одной продаже).
  */
 class ReportClientQueryTest extends TestCase
 {
     /**
-     * Реплицирует логику фильтрации из report_client.php (FIX #19).
+     * Реплицирует логику фильтрации из report_client.php (FIX #19 + fix 2026-07-31).
      *
      * @param array $move Запись из dclient (ассоциативный массив)
+     * @param bool $returnpExists Есть ли в таблице returnp документ с этим number
      * @return string 'sell_entry' | 'return' | 'payment' | 'skip'
      */
-    private function classifyDclientRow(array $move): string
+    private function classifyDclientRow(array $move, bool $returnpExists = false): string
     {
         $isSellEntry = (
             isset($move['number']) &&
@@ -39,8 +48,9 @@ class ReportClientQueryTest extends TestCase
             return 'payment_in';
         }
 
-        // else branch
-        if ($move['number'] > 0) {
+        // else branch: классификация теперь идёт по реальному наличию
+        // документа в returnp, а не просто по факту, что number>0.
+        if ($move['number'] > 0 && $returnpExists) {
             return 'return';
         }
 
@@ -118,12 +128,24 @@ class ReportClientQueryTest extends TestCase
     }
 
     /**
-     * AC: Запись с number>0 и debt<0 — это возврат.
+     * AC: Запись с number>0, debt<0 И реальной записью в returnp — это возврат.
      */
     public function testReturnWithNumberAndNegativeDebt(): void
     {
         $row = ['number' => 50, 'debt' => -100.0, 'sum' => 0.0, 'bonus' => 0.0];
-        $this->assertSame('return', $this->classifyDclientRow($row));
+        $this->assertSame('return', $this->classifyDclientRow($row, true));
+    }
+
+    /**
+     * Регрессионный тест бага 2026-07-31: погашение долга (actionReceivedDebt)
+     * могло записать number произвольной чужой продажи. Даже если number>0
+     * и debt<0, при отсутствии документа в returnp это ДОЛЖНО остаться
+     * оплатой, а не превращаться в "возврат".
+     */
+    public function testPaymentWithUnrelatedSaleNumberIsNotMisclassifiedAsReturn(): void
+    {
+        $row = ['number' => 8372, 'debt' => -100.0, 'sum' => 0.0, 'bonus' => 0.0];
+        $this->assertSame('payment', $this->classifyDclientRow($row, false));
     }
 
     /**

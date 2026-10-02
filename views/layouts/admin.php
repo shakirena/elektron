@@ -121,7 +121,8 @@ else $role3=0;
 					['label' => 'Xərclər həsabatı', 'url' => ['/costs/index']],
 					['label' => 'Medaxil həsabatı', 'url' => ['/costs/index2']],
 					['label' => 'Kassa hesabatı', 'url' => ['/costs/kassa']], 
-					['label' => 'Günün sonu', 'url' => ['/move/itog']],					
+					['label' => 'Günün sonu', 'url' => ['/move/itog']],
+					['label' => 'Aylıq sverka', 'url' => ['/monthly-sverka/index'], 'visible' => (bool) $admin],
 					
                 ]
             ] : '',
@@ -144,7 +145,7 @@ else $role3=0;
                              
             ['label' => 'İdarə Etmə', 'url' =>  ['/admin/index']],
 $role1 ?
-            ['label' => 'Satış', 'url' => ['/sell/index']]:"",
+            ['label' => 'Satış', 'url' => ['/sell/index-v2']]:"",
             Yii::$app->user->isGuest ? (
                 ['label' => 'Login', 'url' => ['/site/login']]
             ) : (
@@ -183,6 +184,8 @@ $role1 ?
             <a id="link5" class="btn btn-info btn-large btn-block"  href="<?= Yii::$app->urlManager->createUrl(['store/index']) ?>">Anbar</a>
 			<a id="link5" class="btn btn-info btn-large btn-block"  href="<?= Yii::$app->urlManager->createUrl(['kassa/index']) ?>">Kassa</a>	
 			<a id="link5" class="btn btn-info btn-large btn-block"  href="<?= Yii::$app->urlManager->createUrl(['bonus/index']) ?>">Bonus</a>
+            <a id="link5" class="btn btn-info btn-large btn-block"  href="<?= Yii::$app->urlManager->createUrl(['company/index']) ?>">Şirkət məlumatı</a>
+            <a id="link5" class="btn btn-info btn-large btn-block"  href="<?= Yii::$app->urlManager->createUrl(['display-settings/index']) ?>">Görünüş tənzimləmələri</a>
             <!--<a id="link5" class="btn btn-info btn-large btn-block"  href="<?= Yii::$app->urlManager->createUrl(['type-costs/index']) ?>">Xərcləri</a>-->
 			<a id="link5" class="btn btn-info btn-large btn-block"  onclick="passwordLogin()" href="#">Password</a>
 			<?php

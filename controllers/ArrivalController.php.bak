@@ -27,6 +27,9 @@ use app\models\ReturnArrival;
 use app\models\Barcodep;
 use app\models\Image;
 use app\models\Password;
+use app\models\UploadForm;
+use yii\web\UploadedFile;
+
 
 use yii\filters\AccessControl;
 //use app\models\Move;
@@ -125,7 +128,90 @@ class ArrivalController extends Controller
             ]);
         }
     }
+	public function actionCreateCheck()
+    {
+       
+      
+			$b=Yii::$app->request->post("Barcodep");
+			 foreach ( $b['name'] as $barcode)
+                {
+                   $barcod=Barcodep::find()->where(["name"=> $barcode])->one();
+					if ($barcod->id)  return 1;
 
+				}
+			
+		
+	}
+	public function actionCreateProduct()
+    {
+        $model = new Product();
+		$image=new UploadForm();
+        if (Yii::$app->request->post()) {
+			$b=Yii::$app->request->post("Barcodep");
+		
+            $product = Yii::$app->request->post("Product");
+
+            $model->name = $product['name'];
+            $model->id_type = $product['id_type'];
+			$model->boxing = $product['boxing'];
+
+
+            if ($model->save()) { //&& $model->save()
+               if ( $b){
+
+                foreach ( $b['name'] as $barcode)
+                {
+                    $bar_code=new Barcodep();
+                    $bar_code->id_product=$model->id;
+                    $bar_code->name=$barcode;
+                    $bar_code->save();
+
+            }}
+			
+			
+				if ($image->imageFiles = UploadedFile::getInstances($image, 'imageFiles')){
+                if ($image->upload($model->id)) {
+                  
+                    $image_tratment=new \app\models\Image();
+                    $image_tratment->id_tre=$model->id;
+                    $image_tratment->path="uploads/".$model->id."/".$image->imageFiles[0]->name;
+                    $thumbnFile="thumb/".$model->id."/".$image->imageFiles[0]->name;
+					$image_tratment->thumb=$thumbnFile;
+			Image::thumbnail( Url::to([$image_tratment->path],true), 50, 50)->save($_SERVER['DOCUMENT_ROOT'] .'/web/'.$thumbnFile, ['quality' => 80]);
+                    $image_tratment->save();
+                    // return;
+                }}
+			
+			
+				$arrival = new Arrival();
+				$arrival->pricesell =0;
+				$arrival->price =0;
+				
+			
+				$arrival->id_product = $model->id;
+				$arrival->quantity = 1;
+				$arrival->rest =1;
+				
+				$arrival->id_user = Yii::$app->user->identity->id_user;
+				$arrival->received = 0;
+				$arrival->datetime = date("Y-m-d H:i:s");
+				$arrival->save();
+               return $this->redirect(['index']);
+            }
+
+        }
+        else {
+
+            $model->id_type=Product::find()->orderBy("id DESC")->one()->id_type;
+            $barcode=new Barcodep();
+            return $this->renderAjax('create-product', [
+                'model' => $model,
+                'barcode' =>$barcode,
+				'image' => $image,
+            ]);
+        }
+
+    }
     /**
      * Updates an existing Arrival model.
      * If update is successful, the browser will be redirected to the 'view' page.
@@ -284,7 +370,7 @@ class ArrivalController extends Controller
 
 	public function  actionFindProduct()
 	{
-		foreach (Barcode::find()->all() as $arrival) 
+		foreach (Barcodep::find()->all() as $arrival) 
 		{
 			$product = Product::find()->where(['id' => $arrival->id_product ])->one();
 			if (!$product) echo $arrival->id_product."<br>;";
@@ -483,7 +569,7 @@ public function actionGetPricesellMin($id)
     public function actionProcentEdit($procent,$price)
     {
 
-        $pricesell=round($price+$procent*$price/100,2);
+        $pricesell=round($price-$procent*$price/100,2);
 
         return $pricesell;
     }

@@ -14,13 +14,20 @@ use kartik\date\DatePicker;
 /* @var $searchModel app\models\ArrivalSearch */
 /* @var $dataProvider yii\data\ActiveDataProvider */
 
+$company = [
+    'name' => \app\models\Setting::get('company.name', ''),
+    'instagram' => \app\models\Setting::get('company.instagram', ''),
+    'whatsapp' => \app\models\Setting::get('company.whatsapp', ''),
+    'phone' => \app\models\Setting::get('company.phone', ''),
+    'mobile' => \app\models\Setting::get('company.mobile', ''),
+];
 $this->title = 'Arrivals';
 //$this->params['breadcrumbs'][] = $this->title;
 ?>
 
 <div id="inf" style="width:250px;" align='center' onafterprint="myFunction()">
 
-    <p style="font-family:Times New Roman;margin-bottom:0px;font-size:10pt;"><b>Hərşey Burada</b></p>
+    <p style="font-family:Times New Roman;margin-bottom:0px;font-size:10pt;"><b><?= Html::encode($company['name']) ?></b></p>
     <p style="font-size:8pt;" >Tarix: <?php echo date("Y-m-d H:i:s"); ?><br>İadə qəbzi: <?php echo $number; ?><br/><?php echo Client::find()->where(["id_client"=>$client])->one()->fio; ?></p>
 
 

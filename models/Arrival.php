@@ -245,7 +245,7 @@ $i=0;
     }
     public function getSumRest($model,$column){
         $sum=0;
-        $query = Arrival::find()->select('sum(rest) as rest,sum(price*rest) as sum,sum(usd*rest) as usd,arrival.id_product,id_store,sum(pricesell*rest) as pricesell')
+        $query = Arrival::find()->select('sum(rest) as rest,sum(price*rest) as sum,sum(usd*rest) as usd,arrival.id_product,id_store,sum(pricesell*rest) as pricesell')->where(["postponed" => 0,'received'=>1])
            // ->joinWith('idProduct.idType')
 			//->join('JOIN', 'bar_code','bar_code.id_product=arrival.id_product')
 			//->leftJoin( 'bar_code','bar_code.id_product=arrival.id_product')

@@ -108,10 +108,10 @@ $this->title = 'Arrivals';
 					}
 					else
 					{
-						if ($move['number']>0) {
-								
+						$return = ($move['number']>0) ? Returnp::find()->where(['number'=>$move['number']])->one() : null;
+						if ($return) {
+
 									$debt=round($debt+$move[debt],2);
-									$return=Returnp::find()->where(['number'=>$move[number]])->one();
 									$move[debt]=-$move[debt];
 									$sum_voz=$sum_voz+$move[debt];
 									$move[pos] = -$move[pos];

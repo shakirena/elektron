@@ -30,9 +30,10 @@ use kartik\select2\Select2;
         'dataProvider' => $dataProvider,
         'filterModel' => $searchModel,
         'tableOptions' => [
-            'style' => 'width:800px;cursor:pointer',
+            'style' => 'width:860px;cursor:pointer;table-layout:fixed',
             'class' => 'table-rena table-rena2',
         ],
+        'resizableColumns' => false,
         'pjax' =>true,
         'hover'=>true,
         'striped' =>true,
@@ -46,35 +47,37 @@ use kartik\select2\Select2;
             },
 
         'columns' => [
-            ['class' => 'kartik\grid\SerialColumn'],
+            ['class' => 'kartik\grid\SerialColumn', 'width' => '30px'],
 			[
 				'attribute' =>  'name',
+				 'width' => '260px',
 				 'filterInputOptions' =>[
                         'class' => 'form-control',
 						'id' => 'filterName'
                     ],
-			
+
 			],
-            
+
             [
                 'label'  => 'Artikul nomresi',
                 'attribute' =>'article_number',
                 'value'  => 'article_number',
                 'format' => 'raw',
-                'width'  => '120px',
-               
+                'width'  => '80px',
+                'headerOptions' => ['style' => 'white-space:normal'],
             ],
 			[
 				'value' => 'price',
 				'filter' => false,
-				'label' => 'price'
-			
+				'label' => 'price',
+				'width' => '45px',
 			],
            [
 				'value' => 'restSklad',
 				'filter' => false,
-				'label' => 'Ostatok'
-			
+				'label' => 'Ostatok',
+				'width' => '60px',
+				'headerOptions' => ['style' => 'white-space:normal'],
 			],
                [
 				'attribute' =>'contractor',
@@ -85,7 +88,7 @@ use kartik\select2\Select2;
 						
                     ],
                     'filterType' =>GridView::FILTER_SELECT2,
-                    'width' => '200px',
+                    'width' => '110px',
                     'filterInputOptions' =>['placeholder'=>'Any ']
 
 
@@ -103,12 +106,14 @@ use kartik\select2\Select2;
                     'pluginOptions' => ['allowClear' => true]
                 ],
                 'filterType' => GridView::FILTER_SELECT2,
-                'width' => '200px',
+                'width' => '110px',
                 'filterInputOptions' => ['placeholder' => 'Any type']
             ],
             [
                 'attribute' => 'barcode',
-                'value' => 'nameBarcode'
+                'value' => 'nameBarcode',
+                'width' => '165px',
+                'contentOptions' => ['style' => 'word-break:break-all'],
             ]
           //  'bar_code',
 

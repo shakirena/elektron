@@ -6,9 +6,12 @@ use yii\helpers\ArrayHelper;
 use yii\helpers\Url;
 use yii\bootstrap\Modal;
 use app\models\TypeProduct;
+use app\models\DisplaySettingsForm;
 /* @var $this yii\web\View */
 /* @var $searchModel app\models\ProductSearch */
 /* @var $dataProvider yii\data\ActiveDataProvider */
+
+$displaySettings = DisplaySettingsForm::current();
 
 $this->title = 'Products';
 //$this->params['breadcrumbs'][] = $this->title;
@@ -60,7 +63,7 @@ $this->title = 'Products';
 				 'attribute' =>'name',
 				 'width' => '600px',
 			],
-            "article_number",
+            ['attribute' => 'article_number', 'visible' => $displaySettings['show_article_number']],
             [
                 'attribute' => 'id_type',
                 'filter' => $typeList,
@@ -88,7 +91,17 @@ $this->title = 'Products';
 				'value'=>'getPhoto',
 				'format'=>'raw'
 			],
-			
+			[
+				'label' => 'Sürətli satış',
+				'format' => 'raw',
+				'width' => '60px',
+				'value' => function ($model) {
+					return Html::checkbox('quick_access', (bool) $model->quick_access, [
+						'onchange' => "$.get('quick-access', {id:$model->id, value:this.checked?1:0})",
+					]);
+				}
+			],
+
             ['class' => 'kartik\grid\ActionColumn'],
         ],
     ]); ?>

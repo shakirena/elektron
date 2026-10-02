@@ -29,7 +29,8 @@ $this->title = 'Arrivals';
     <table class="table-rena kv-grid-table table table-bordered  kv-table-wrap">
         <thead>
         <th>Tarix</th>
-        <th>Mədaxil / məxaric adı</th> 
+        <th>Mədaxil / məxaric adı</th>
+        <th>Kassa</th>
         <th>Qeyd</th>
 		<th>Mədaxil məbləği</th>
 		<th>Məxarici məbləği</th>
@@ -45,6 +46,7 @@ $this->title = 'Arrivals';
 		$rasxod = 0;
 							echo "<tr>
 								<td>Текущая сумма</td>
+								<td></td>
 								<td></td>	
 								<td></td>
 								<td></td>
@@ -53,6 +55,7 @@ $this->title = 'Arrivals';
 											
 							</tr>";
 				foreach($model as $move) {
+					$kassaName = $move->idKassa ? $move->idKassa->name : '';
 				
 					if ($move->id_type)
 						{
@@ -73,6 +76,7 @@ $this->title = 'Arrivals';
 											<td>$move->datetime</td>
 											
 											<td><a href='../sell/report1?number=$move[fid]'> $type ($move->fid) $move->datetime tarixdən</a></td>
+											<td>$kassaName</td>
 											<td>$move->note</td>
 											<td>$move->sum</td>
 											<td></td>
@@ -95,6 +99,7 @@ $this->title = 'Arrivals';
 											<td>$move->datetime</td>
 											
 											<td><a href='../sell/report1?number=$move[fid]'> $type ($move->fid) $move->datetime tarixdən</a></td>
+											<td>$kassaName</td>
 											<td>$move->note</td>
 											<td></td>
 											<td>$move->sum</td>
@@ -113,6 +118,7 @@ $this->title = 'Arrivals';
 									echo "<tr>
 									<td>$move->datetime</td>
 									<td>$type </td>	
+									<td>$kassaName</td>
 									<td>$move->note</td>
 									<td>$move->sum</td>
 									<td></td>
@@ -133,6 +139,7 @@ $this->title = 'Arrivals';
 									echo "<tr>
 									<td>$move->datetime</td>
 									<td>$type </td>	
+									<td>$kassaName</td>
 									<td>$move->note</td>
 									<td></td>
 									<td>$move->sum</td>
@@ -155,6 +162,7 @@ $this->title = 'Arrivals';
 									echo "<tr>
 									<td>$move->datetime</td>
 									<td> $kassa -dan trensfer</td>	
+									<td>$kassaName</td>
 									<td>$move->note</td>
 									<td>$move->sum</td>
 									<td></td>
@@ -169,6 +177,7 @@ $this->title = 'Arrivals';
 									echo "<tr>
 									<td>$move->datetime</td>
 									<td> $kassa -ya transfer</td>	
+									<td>$kassaName</td>
 									<td>$move->note</td>
 									<td></td>
 									<td>$move->sum</td>
@@ -185,6 +194,7 @@ $this->title = 'Arrivals';
 				
 					echo "<tr  class='danger'>
 								<td>Итог</td>
+								<td></td>
 								<td></td>	
 								<td></td>
 								<td>$prixod</td>

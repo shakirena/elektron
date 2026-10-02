@@ -570,9 +570,8 @@ function editPrice2(id,price,i)
 }
 function editSn(id,sn)
 {
-    $.get('update-sn', {id:id,sn:sn},function(){
-        $.pjax.reload({container:"#grid-arrival"});
-    });
+    // Qeyd məbləğə təsir etmir — cədvəli yeniləmirik ki, növbəti sahəyə keçən fokus itməsin
+    $.get('update-sn', {id:id,sn:sn});
 
 }
 
@@ -1066,6 +1065,17 @@ function findProduct()
 else window.location.replace(window.location.href + "?barcode="+$("#barcode").val());
 	
 }
+// İlkin çek: satış ('received') OLMADAN səbətin çekini çap edir.
+// sell/print yalnız oxuyur, ona görə səbət və qalıqlar dəyişmir.
+function previewChek(money,discount,user,kassa,virtual) {
+    $("#preview-chek-frame").remove();
+    $("<iframe>")
+        .attr("id", "preview-chek-frame")
+        .hide()
+        .attr("src", "print?" + $.param({money: money || 0, discount: discount || 0, user: user || '', kassa: kassa || 0, virtual: virtual || 0}))
+        .appendTo("body");
+}
+
 function receivedSell(money,date,rate,store,user,flag,discount,kassa, virtual) {
 	
  if (rate==-1) {

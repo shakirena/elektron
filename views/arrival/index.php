@@ -13,10 +13,13 @@ use app\models\Contractor;
 use app\models\Product;
 use kartik\select2\Select2;
 use app\models\TypeProduct;
+use app\models\DisplaySettingsForm;
 
 if (  Yii::$app->user->identity->id_role==1)  $role3=0;
 
 else $role3=1;
+
+$displaySettings = DisplaySettingsForm::current();
 
 /* @var $this yii\web\View */
 /* @var $searchModel app\models\ArrivalSearch */
@@ -135,11 +138,11 @@ else $role3=1;
   </div>
 
 
- <div class="form-group" >
+ <div class="form-group" style="'.($displaySettings['show_box_count'] ? '' : 'display:none').'">
     <label for="inputEmail3" class="col-sm-2 control-label" >Qutuda ədəd sayi</label>
     <div class="col-sm-10">'. Html::input('text','pack','1',[' class' =>"form-control", 'id' =>'pack','onchange' => 'editPack()']).'</div>
   </div>
-<div class="form-group" >
+<div class="form-group" style="'.($displaySettings['show_unit_price'] ? '' : 'display:none').'">
     <label for="inputEmail3" class="col-sm-2 control-label">Ədədin qyiməti</label>
     <div class="col-sm-10">'. Html::input('text','price_top','0',[' class' =>"form-control", 'id' =>'price_top']).'</div>
   </div>
@@ -147,12 +150,12 @@ else $role3=1;
     <label for="inputEmail3" class="col-sm-2 control-label">Topdan satış qiyməti</label>
     <div class="col-sm-10">'. Html::input('text','trade_price','0',[' class' =>"form-control", 'id' =>'trade_price']).'</div>
   </div>
-<!--<div class="form-group" >
-    <label for="inputEmail3" class="col-sm-2 control-label">Minimum  satış  qiyməti</label>
-    <div class="col-sm-10">'. Html::input('text','pricesell_min','0',[' class' =>"form-control", 'id' =>'pricesell_min']).'</div>
-  </div>  
--->
-</div>'.Html::button('<i class="glyphicon glyphicon-ok"></i>  OK', ['class' => 'btn btn-success', 'onclick' => 'addArrivalReceived($("#quantity").val(),$("#price").val(),$("#id").val(),$("#pricesell").val(),$("#proc").val(),$("#pack").val(),$("#price_top").val(),0,$("#trade_price").val(),0,$("#boxing").val())']).'</div>';
+<div class="form-group" style="'.($displaySettings['show_shelf'] ? '' : 'display:none').'">
+    <label for="inputEmail3" class="col-sm-2 control-label">Polka</label>
+    <div class="col-sm-10">'. Html::input('text','polka','0',[' class' =>"form-control", 'id' =>'polka']).'</div>
+  </div>
+
+</div>'.Html::button('<i class="glyphicon glyphicon-ok"></i>  OK', ['class' => 'btn btn-success', 'onclick' => 'addArrivalReceived($("#quantity").val(),$("#price").val(),$("#id").val(),$("#pricesell").val(),$("#proc").val(),$("#pack").val(),$("#price_top").val(),$("#polka").val(),$("#trade_price").val(),0,$("#boxing").val())']).'</div>';
 
     Modal::end();
     $i=0;
@@ -308,21 +311,32 @@ $this->registerJs($script);
 						[   'attribute' =>    'pack',
 							'encodeLabel' => false,
 							'format' => 'raw',
+							'visible' => $displaySettings['show_box_count'],
 							'value' => function ($model, $index, $widget)  use (&$i) {
 								return Html::input('text', 'pack[]', $model->pack, ['class' => 'form-control input-sm','id'=>"pack".$i, 'size' => '3', 'onChange' => "editPacka($model->id,this.value,$i)"]);
 							}
 						],
-						
-			   
+
+
 						[   'attribute' =>    'price_top',
 							'encodeLabel' => false,
 							'format' => 'raw',
+							'visible' => $displaySettings['show_unit_price'],
 							'value' => function ($model, $index, $widget)   use (&$i){
 								return Html::input('text', 'price_top[]', $model->price_top, ['class' => 'form-control input-sm','id'=>"price_top".$i, 'size' => '3', 'onChange' => "editPriceTop($model->id,this.value)"]);
 							}
 						],
-						
-						
+
+						[
+							'attribute' => 'polka',
+							'format' => 'raw',
+							'encodeLabel' => false,
+							'visible' => $displaySettings['show_shelf'],
+							'value' => function ($model, $index, $widget) {
+
+						        return Html::input('text', 'polka[]', $model->polka, ['class' => 'form-control input-sm', 'size' => '3', 'onChange' => "editPolka($model->id,this.value)"]);
+							}
+						],
 					/*	[   
 							'attribute' =>    'boxing',
 							'label'=>'Blok </br> sayı',
@@ -398,7 +412,7 @@ $this->registerJs($script);
 	<?php Pjax::begin(['id' => 'grid-update']) ?>
 			<p style="color:red;font-size: 30px; padding-left:10px" > <?= round($sum,2)." AZN"?></p>
 	<?php Pjax::end(); ?>
-	<? if (!$model->datetime) $date= date('Y-m-d'); else $date=date("Y-m-d",$model->datetime);?>
+	<? if (!$model->datetime) $date= date('Y-m-d'); else $date=date("Y-m-d",strtotime($model->datetime));?>
 	
     <?=Html::img('../img/calendar.png')." Date" .
     DatePicker::widget([

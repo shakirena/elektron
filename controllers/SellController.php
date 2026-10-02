@@ -984,10 +984,17 @@ if ($product->id_product) {
     }
     public function actionUpdateSn($id, $sn)
     {
-        $model =Sell2::find()->where(['id'=>$id])->one();
+        if (Yii::$app->user->isGuest) {
+            throw new \yii\web\ForbiddenHttpException();
+        }
+        // Yalnız cari kassirin satılmamış səbət sətri redaktə oluna bilər
+        $model = Sell2::find()->where(['id' => $id, 'sold' => 0, 'id_user' => Yii::$app->user->identity->id_user])->one();
+        if ($model === null) {
+            throw new \yii\web\NotFoundHttpException();
+        }
         $model->sn = $sn;
 
-        $model->save();
+        return $model->save() ? 1 : 0;
 
     }
     public function actionSelect($id)

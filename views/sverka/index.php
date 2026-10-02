@@ -45,6 +45,13 @@ $this->title = 'Sverkas';
         <div class="col-md-2">
             <?= Html::button('Записать <i class="glyphicon glyphicon-play"></i>', ['class' => 'btn btn-danger', 'onclick' => 'sverkaReceived()']) ?>
         </div>
+
+        <div class="col-md-3">
+            <span class="label label-success" style="font-size:14px;">İzafi (alış qiymətinə görə): <?= number_format($surplusSum, 2) ?></span>
+        </div>
+        <div class="col-md-3">
+            <span class="label label-danger" style="font-size:14px;">Çatışmazlıq (alış qiymətinə görə): <?= number_format($shortageSum, 2) ?></span>
+        </div>
     </div>
     <br>
     <div class="btn-group">
@@ -57,6 +64,10 @@ $this->title = 'Sverkas';
     <div class="btn-group">
         <?= Html::button('<i class="glyphicon glyphicon-ok"></i>  OK', ['class' => 'btn btn-success', 'onclick' => 'addSellType($("#product").val())']); //addSellType($("#product").val())?>
 
+    </div>
+
+    <div class="btn-group">
+        <?= Html::button('<i class="glyphicon glyphicon-print"></i> Печатать', ['class' => 'btn btn-primary', 'onclick' => 'printSverka()']) ?>
     </div>
 
 

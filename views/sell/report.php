@@ -15,10 +15,13 @@ use app\models\Store;
 use app\models\Sell;
 use app\models\Dclient;
 use kartik\select2\Select2;
+use app\models\DisplaySettingsForm;
 
 /* @var $this yii\web\View */
 /* @var $searchModel app\models\ArrivalSearch */
 /* @var $dataProvider yii\data\ActiveDataProvider */
+
+$displaySettings = DisplaySettingsForm::current();
 
 $this->title = 'Arrivals';
 //$this->params['breadcrumbs'][] = $this->title;
@@ -105,7 +108,7 @@ $this->title = 'Arrivals';
                             1=> ' Summary (sell note №'.$model->number.')',
                             5=>GridView::F_SUM,
                             6=>GridView::F_SUM,
-							8=>GridView::F_SUM,
+							9=>GridView::F_SUM,
                             
 
                           //  9=>GridView::F_SUM,
@@ -118,7 +121,7 @@ $this->title = 'Arrivals';
                         'contentFormats' => [
 							5=> ['format'=>'number','decimals'=>2],
                             6=> ['format'=>'number','decimals'=>2],
-                            8=> ['format'=>'number','decimals'=>2],
+                            9=> ['format'=>'number','decimals'=>2],
                             
                            
                         ],
@@ -127,7 +130,7 @@ $this->title = 'Arrivals';
                             6 => ['style' => 'text-align:right'],
                            
                            
-                            8 => ['style' => 'text-align:right'],
+                            9 => ['style' => 'text-align:right'],
 
 
 
@@ -185,6 +188,7 @@ $this->title = 'Arrivals';
                 'value'  => 'idProduct.article_number',
                 'format' => 'raw',
                 'width'  => '120px',
+                'visible' => $displaySettings['show_article_number'],
             ],
 
             [
@@ -274,7 +278,8 @@ $this->title = 'Arrivals';
 			[
                 'attribute' =>  'sn',
                
-                'format'=>'raw',
+                'format'=>'text',
+                'visible' => $displaySettings['show_sn'],
                 
         
                 'encodeLabel' => false,
@@ -340,12 +345,13 @@ $this->title = 'Arrivals';
  <?php
 
   $itog = $sum+$zakaz+ $return;
-  $summa = $sum_earnings - $earnings;
     echo "Cəmi: ".round($sum,2)."<br>";
     echo "Vozvrat: ".round($return,2)."<br>";
-	
-	if (  Yii::$app->user->identity->id_role==6 )
+
+	if (  Yii::$app->user->identity->id_role==6 ) {
+	$summa = $sum_earnings - $earnings;
 	echo "Mənfəət: ".round($summa,2)."<br>";
+	}
 	echo "<b>Yekun: ".round($itog,2)."</b><br>";
 	
 
