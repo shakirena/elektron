@@ -6,6 +6,18 @@ $config = [
     'id' => 'basic',
     'basePath' => dirname(__DIR__),
     'bootstrap' => ['log'],
+    // Журнал изменений (audit_log): триггеры MySQL берут пользователя и маршрут из этих переменных
+    'on beforeAction' => function ($event) {
+        try {
+            $user = Yii::$app->user->isGuest ? null : Yii::$app->user->identity->id_user;
+            Yii::$app->db->createCommand('SET @app_user_id = :u, @app_route = :r', [
+                ':u' => $user,
+                ':r' => $event->action->uniqueId,
+            ])->execute();
+        } catch (\Exception $e) {
+            Yii::warning('audit_log context: ' . $e->getMessage());
+        }
+    },
     'components' => [
         'urlManager' => [
             'class' => 'yii\web\UrlManager',

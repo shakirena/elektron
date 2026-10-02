@@ -180,6 +180,48 @@ $labels = ['stok' => 'Stok (təsdiqlənmiş mədaxil)', 'portfel' => 'Portfel (m
         </table>
         <p class="ms-muted">Stokda fərq varsa — malın qiyməti/qalığı pul hərəkəti olmadan dəyişib. Stokda fərq yoxdursa, səbəbi kassa, müştəri və ya şirkət borclarındadır.</p>
 
+        <h4>Fərqin səbəbləri</h4>
+        <?php if ($audit === null || $audit['log_start'] === null): ?>
+            <p class="ms-muted">Dəyişikliklər jurnalı hələ boşdur — səbəblər jurnal işə düşəndən sonrakı əməliyyatlar üçün göstəriləcək.</p>
+        <?php else: ?>
+            <?php if (!$audit['covers_period']): ?>
+                <div class="alert alert-info">Jurnal <?= Html::encode($audit['log_start']) ?> tarixindən aparılır, snapshot isə ondan əvvəldir — fərqin bir hissəsi jurnaldan əvvəlki dövrə aiddir və aşağıda görünmür.</div>
+            <?php endif; ?>
+            <table class="table table-condensed table-bordered" style="max-width:760px">
+                <tr><th>Səbəb</th><th class="num">Say</th><th class="num">Fərqə təsir</th></tr>
+                <?php foreach ($audit['groups'] as $name => $g): ?>
+                    <tr><td><?= Html::encode($name) ?></td><td class="num"><?= $g['count'] ?></td><td class="num <?= $cls($g['unexplained'], 1) ?>"><?= $sign($g['unexplained']) ?></td></tr>
+                <?php endforeach; ?>
+                <tr>
+                    <td>Gündəlik əməliyyatlar (satış, kassa, borclar) arasında uyğunsuzluq
+                        <div class="ms-muted">Nağd satış <?= $f($flows['cash_sales']) ?>, kassaya daxil edilən satış <?= $f($flows['cash_entered']) ?> (fərq <?= $sign($flows['cash_entered'] - $flows['cash_sales']) ?>)</div></td>
+                    <td class="num"></td>
+                    <td class="num <?= $cls($audit['normal_unexplained']) ?>"><?= $sign($audit['normal_unexplained']) ?></td>
+                </tr>
+                <tr class="info"><td><b>Jurnal üzrə cəmi</b></td><td></td><td class="num"><b><?= $sign($audit['total_unexplained']) ?></b></td></tr>
+                <tr><td>Ümumi fərq (yuxarıda)</td><td></td><td class="num"><?= $sign($compare['diff']) ?></td></tr>
+                <tr><td class="ms-muted">Jurnalla izah olunmayan qalıq (jurnaldan əvvəlki dövr, müştəri artıq ödənişləri)</td><td></td><td class="num ms-muted"><?= $sign(round($compare['diff'] - $audit['total_unexplained'], 2)) ?></td></tr>
+            </table>
+
+            <?php if ($audit['events']): ?>
+                <p class="ms-muted">Diqqət tələb edən əməliyyatlar: <?= $audit['events_total'] ?><?= $audit['events_total'] > count($audit['events']) ? ' (son ' . count($audit['events']) . ' göstərilir)' : '' ?></p>
+                <table class="table table-condensed table-striped" style="font-size:12px">
+                    <tr><th>Vaxt</th><th>İstifadəçi</th><th>Səbəb</th><th>Nə dəyişib</th><th>Sənəd tarixi</th><th class="num">Nəticəyə</th><th class="num">Fərqə</th></tr>
+                    <?php foreach ($audit['events'] as $e): ?>
+                        <tr>
+                            <td style="white-space:nowrap"><?= Html::encode($e['created_at']) ?></td>
+                            <td><?= Html::encode($e['fio'] ?: '—') ?></td>
+                            <td><?= Html::encode($e['category']) ?><div class="ms-muted"><?= Html::encode($e['route'] ?: 'proqramdan kənar') ?></div></td>
+                            <td><?= Html::encode(\app\models\MonthlySverkaReport::describe($e)) ?></td>
+                            <td style="white-space:nowrap"><?= Html::encode($e['doc_date']) ?></td>
+                            <td class="num"><?= $sign($e['effect']) ?></td>
+                            <td class="num"><?= $sign($e['unexplained']) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </table>
+            <?php endif; ?>
+        <?php endif; ?>
+
         <?php if ($backdated): ?>
             <div class="alert alert-warning">
                 <b>Snapshot-dan sonra keçmiş tarixlə daxil edilənlər:</b>

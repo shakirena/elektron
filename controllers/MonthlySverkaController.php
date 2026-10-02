@@ -67,11 +67,12 @@ class MonthlySverkaController extends Controller
         }
 
         $now = MonthlySverkaReport::current();
-        $flows = null; $compare = null; $backdated = [];
+        $flows = null; $compare = null; $backdated = []; $audit = null;
         if ($baseModel) {
             $flows = MonthlySverkaReport::flows($baseModel->datetime);
             $compare = MonthlySverkaReport::compare($baseModel->attributes, $now, $flows);
             $backdated = MonthlySverkaReport::backdated($baseModel);
+            $audit = MonthlySverkaReport::audit($baseModel);
         }
 
         // Период «Gəlir və xərc» — только даты: с 00:00:00 первого дня по 23:59:59 последнего.
@@ -93,6 +94,7 @@ class MonthlySverkaController extends Controller
             'flows' => $flows,
             'compare' => $compare,
             'backdated' => $backdated,
+            'audit' => $audit,
             'manual' => $manual,
         ]);
     }

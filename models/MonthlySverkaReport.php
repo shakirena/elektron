@@ -21,6 +21,22 @@ class MonthlySverkaReport
     /** Типы costs с type=1, которые являются выручкой/оплатой клиента, а не сторонним поступлением. */
     const NOT_OTHER_INCOME_TYPES = [1, 3, 56];
 
+    /** Штатные операции (маршруты), которые двигают склад, деньги и долги. */
+    const NORMAL_ROUTES = [
+        'sell/received' => 'Satış',
+        'postponed/receive' => 'Satış', 'postponed/receive1' => 'Satış', 'postponed/postponed-print' => 'Satış', 'postponed/master' => 'Satış',
+        'arrival/received' => 'Mədaxil',
+        'arrival/received-return' => 'Şirkətə vozvrat', 'arrival/received-return2' => 'Şirkətə vozvrat',
+        'sell/return-sell-received' => 'Müştəri vozvratı', 'sell/received-return' => 'Müştəri vozvratı',
+        'sell/return-received' => 'Müştəri vozvratı', 'returnp/return-received' => 'Müştəri vozvratı',
+        'transfer/received' => 'Transfer', 'transfer/received-posponed' => 'Transfer',
+        'costs/create' => 'Kassa', 'costs/prixod' => 'Kassa', 'costs/transfer' => 'Kassa',
+        'debt/create' => 'Şirkət borcu', 'debt/debt-add' => 'Şirkət borcu', 'debt/received-debt' => 'Şirkət borcu',
+        'dclient/create' => 'Müştəri borcu', 'sell/dclient-add' => 'Müştəri borcu', 'sell/received-debt' => 'Müştəri borcu',
+    ];
+
+    const ACTION_LABELS = ['I' => 'əlavə', 'U' => 'dəyişiklik', 'D' => 'silinmə'];
+
     public static function netice($stok, $portfel, $kassa, $borc)
     {
         return round((float) $stok + (float) $portfel + (float) $kassa - (float) $borc, 2);
@@ -124,6 +140,12 @@ class MonthlySverkaReport
             }
         }
 
+        // Деньги от продаж, которые должны прийти в кассу сразу: анонимные продажи + оплата клиентов в момент продажи.
+        // Сравниваются с внесённой выручкой (Satış, Günlik satışdan) — разница = недостача/излишек кассы.
+        $cashSales = (float) $db->createCommand('SELECT COALESCE(SUM(sum),0) FROM sell WHERE (id_client=1 OR id_client IS NULL) AND datetime>=:since AND datetime<=:until', $p)->queryScalar()
+            + (float) $db->createCommand('SELECT COALESCE(SUM(sum),0) FROM dclient WHERE number IS NOT NULL AND sum>0 AND datetime>=:since AND datetime<=:until', $p)->queryScalar();
+        $cashEntered = (float) $db->createCommand('SELECT COALESCE(SUM(sum),0) FROM costs WHERE id_type IN (3,56) AND datetime>=:since AND datetime<=:until', $p)->queryScalar();
+
         $arrivals = (float) $db->createCommand('SELECT COALESCE(SUM(price*quantity),0) FROM arrival WHERE received=1 AND datetime>=:since AND datetime<=:until', $p)->queryScalar();
         $supplierReturns = (float) $db->createCommand('SELECT COALESCE(SUM(price*quantity),0) FROM return_arrival WHERE date>=:since AND date<=:until', $p)->queryScalar();
 
@@ -138,6 +160,8 @@ class MonthlySverkaReport
             'expense_list' => $expenseList,
             'other_income' => round($otherIncome, 2),
             'income_list' => $incomeList,
+            'cash_sales' => round($cashSales, 2),
+            'cash_entered' => round($cashEntered, 2),
             'expense_items' => $expenseItems,
             'income_items' => $incomeItems,
             'arrivals' => round($arrivals, 2),
@@ -179,6 +203,171 @@ class MonthlySverkaReport
             'stock_actual_delta' => round($stockActualDelta, 2),
             'stock_diff' => round($stockActualDelta - $stockExpectedDelta, 2),
         ];
+    }
+
+    /**
+     * Категория записи журнала и нужно ли обратить на неё внимание. Чистая функция.
+     * @param array $row строка audit_log (route, action, doc_date, d_*)
+     * @param string $baseDatetime время снимка
+     * @return array [category, attention]
+     */
+    public static function classify(array $row, $baseDatetime)
+    {
+        $route = (string) $row['route'];
+        $hasEffect = self::neticeEffect($row) != 0 || (float) $row['d_profit'] != 0;
+
+        if ($route === '') {
+            return ['Proqramdan kənar dəyişiklik', true];
+        }
+        if (preg_match('~/cancel$~', $route)) {
+            return ['Ləğv', true];
+        }
+        if (preg_match('~/delete~', $route) || ($row['action'] === 'D' && $hasEffect)) {
+            return ['Silinmə', true];
+        }
+        if (strpos($route, 'sverka/') === 0) {
+            return ['İnventarizasiya', true];
+        }
+        if (preg_match('~/update-~', $route) && $hasEffect) {
+            return ['Qiymət / qalıq redaktəsi', true];
+        }
+        if ($row['action'] === 'I' && $hasEffect && $row['doc_date'] !== null && $row['doc_date'] < $baseDatetime) {
+            return ['Keçmiş tarixlə', true];
+        }
+        if (isset(self::NORMAL_ROUTES[$route])) {
+            return [self::NORMAL_ROUTES[$route], false];
+        }
+        return ['Naməlum əməliyyat (' . $route . ')', $hasEffect];
+    }
+
+    /** Влияние строки журнала на Nəticə = Stok + Portfel + Kassa − Borc. */
+    public static function neticeEffect(array $row)
+    {
+        return round((float) $row['d_stok'] + (float) $row['d_portfel'] + (float) $row['d_kassa'] - (float) $row['d_borc'], 2);
+    }
+
+    /**
+     * Часть изменения итога, не объяснённая прибылью/расходами. Чистая функция.
+     * Записи с датой документа раньше снимка в ожидаемый итог не попадают —
+     * у них необъяснённым считается всё изменение.
+     *
+     * @param array $row строка audit_log; old_data/new_data — JSON
+     * @param string $baseDatetime
+     * @param int[] $expectedCostTypes id_type costs, которые входят в ожидаемый итог (расходы и прочие поступления)
+     * @param float[] $returnCost себестоимость единицы по id_product (для возвратов клиентов)
+     */
+    public static function unexplained(array $row, $baseDatetime, array $expectedCostTypes, array $returnCost)
+    {
+        $effect = self::neticeEffect($row);
+        $inPeriod = $row['doc_date'] === null || $row['doc_date'] >= $baseDatetime;
+        if (!$inPeriod) {
+            return $effect;
+        }
+        $data = json_decode($row['action'] === 'D' ? $row['old_data'] : $row['new_data'], true) ?: [];
+        $expected = (float) $row['d_profit'];
+
+        if ($row['tbl'] === 'costs' && isset($data['id_type']) && in_array((int) $data['id_type'], $expectedCostTypes, true)) {
+            $expected += (float) $row['d_kassa'];
+        }
+        if ($row['tbl'] === 'returnp' && $row['action'] !== 'U' && isset($data['id_product'])) {
+            $cost = isset($returnCost[$data['id_product']]) ? $returnCost[$data['id_product']] : 0;
+            $margin = ((float) $data['price'] - $cost) * (float) $data['quantity'];
+            $expected += $row['action'] === 'I' ? -$margin : $margin;
+        }
+        return round($effect - $expected, 2);
+    }
+
+    /**
+     * Разбор журнала с момента снимка: что объясняет расхождение.
+     * @return array|null null — журнал ещё пуст
+     */
+    public static function audit(MonthlySverka $base)
+    {
+        $db = Yii::$app->db;
+        if (!$db->getTableSchema('audit_log')) {
+            return null;
+        }
+        $rows = $db->createCommand(
+            'SELECT a.*, u.fio FROM audit_log a LEFT JOIN users u ON u.id_user=a.user_id
+             WHERE a.created_at >= :since ORDER BY a.id', [':since' => $base->datetime]
+        )->queryAll();
+        $logStart = $db->createCommand('SELECT MIN(created_at) FROM audit_log')->queryScalar();
+
+        $expectedCostTypes = [];
+        foreach ($db->createCommand('SELECT id, type FROM type_costs')->queryAll() as $t) {
+            $id = (int) $t['id'];
+            if (((int) $t['type'] === 0 && !in_array($id, self::NOT_EXPENSE_TYPES, true))
+                || ((int) $t['type'] === 1 && !in_array($id, self::NOT_OTHER_INCOME_TYPES, true))) {
+                $expectedCostTypes[] = $id;
+            }
+        }
+        $returnCost = [];
+        foreach ($db->createCommand(
+            'SELECT a.id_product, a.price FROM arrival a
+             JOIN (SELECT id_product, MAX(datetime) dt FROM arrival WHERE received=1 GROUP BY id_product) m
+               ON m.id_product=a.id_product AND m.dt=a.datetime WHERE a.received=1'
+        )->queryAll() as $r) {
+            $returnCost[$r['id_product']] = (float) $r['price'];
+        }
+
+        $normalU = 0; $totalU = 0; $groups = []; $events = [];
+        foreach ($rows as $row) {
+            $effect = self::neticeEffect($row);
+            if ($effect == 0 && (float) $row['d_profit'] == 0) {
+                continue;
+            }
+            list($category, $attention) = self::classify($row, $base->datetime);
+            $u = self::unexplained($row, $base->datetime, $expectedCostTypes, $returnCost);
+            $totalU += $u;
+            if (!$attention) {
+                $normalU += $u;
+                continue;
+            }
+            if (!isset($groups[$category])) {
+                $groups[$category] = ['count' => 0, 'effect' => 0, 'unexplained' => 0];
+            }
+            $groups[$category]['count']++;
+            $groups[$category]['effect'] += $effect;
+            $groups[$category]['unexplained'] += $u;
+            $row['category'] = $category;
+            $row['effect'] = $effect;
+            $row['unexplained'] = $u;
+            $events[] = $row;
+        }
+        uasort($groups, function ($a, $b) { return abs($b['unexplained']) <=> abs($a['unexplained']); });
+
+        return [
+            'log_start' => $logStart,
+            'covers_period' => $logStart !== null && $logStart <= $base->datetime,
+            'normal_unexplained' => round($normalU, 2),
+            'total_unexplained' => round($totalU, 2),
+            'groups' => $groups,
+            'events' => array_slice($events, -300),
+            'events_total' => count($events),
+        ];
+    }
+
+    /**
+     * Короткое описание строки журнала для таблицы.
+     */
+    public static function describe(array $row)
+    {
+        $data = json_decode($row['action'] === 'D' ? $row['old_data'] : $row['new_data'], true) ?: [];
+        $old = json_decode((string) $row['old_data'], true) ?: [];
+        $parts = [$row['tbl'] . ' #' . $row['row_id'], self::ACTION_LABELS[$row['action']]];
+        foreach (['id_product' => 'mal', 'id_contr' => 'şirkət', 'id_client' => 'müştəri', 'number' => '№', 'note' => ''] as $k => $label) {
+            if (isset($data[$k]) && $data[$k] !== '' && $data[$k] !== null) {
+                $parts[] = trim($label . ' ' . $data[$k]);
+            }
+        }
+        if ($row['action'] === 'U') {
+            foreach ($data as $k => $v) {
+                if (array_key_exists($k, $old) && $old[$k] != $v) {
+                    $parts[] = "$k: {$old[$k]} → $v";
+                }
+            }
+        }
+        return implode(', ', $parts);
     }
 
     /**
