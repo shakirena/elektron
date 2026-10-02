@@ -72,20 +72,15 @@ $labels = ['stok' => 'Stok (təsdiqlənmiş mədaxil)', 'portfel' => 'Portfel (m
     <h3>Gəlir və xərc</h3>
     <?= Html::beginForm(['index'], 'get', ['class' => 'form-inline', 'style' => 'margin-bottom:12px']) ?>
         <?php if ($baseModel): ?><?= Html::hiddenInput('base', $baseModel->id) ?><?php endif; ?>
-        <?php $fromTs = strtotime($periodFrom); $toTs = $periodTo ? strtotime($periodTo) : null; ?>
-        <?= Html::input('date', 'from', date('Y-m-d', $fromTs), ['class' => 'form-control']) ?>
-        <?= Html::input('time', 'from_time', date('H:i', $fromTs) === '00:00' ? '' : date('H:i', $fromTs), ['class' => 'form-control', 'title' => 'Saat (istəyə görə)']) ?>
+        <?= Html::input('date', 'from', $fromDate, ['class' => 'form-control', 'required' => true]) ?>
         —
-        <?php // Конец без времени = весь день: показываем предыдущий день, т.к. граница хранится как начало следующего ?>
-        <?= Html::input('date', 'to', $toTs ? date('Y-m-d', date('H:i', $toTs) === '00:00' ? $toTs - 86400 : $toTs) : '', ['class' => 'form-control']) ?>
-        <?= Html::input('time', 'to_time', $toTs && date('H:i', $toTs) !== '00:00' ? date('H:i', $toTs) : '', ['class' => 'form-control', 'title' => 'Saat (istəyə görə)']) ?>
+        <?= Html::input('date', 'to', $toDate, ['class' => 'form-control', 'required' => true]) ?>
         <?= Html::submitButton('Göstər', ['class' => 'btn btn-default']) ?>
         <a href="<?= Url::to(['index'] + ($baseModel ? ['base' => $baseModel->id] : [])) ?>" class="btn btn-link">sıfırla</a>
     <?= Html::endForm() ?>
     <p class="ms-muted">
-        Dövr: <?= Html::encode($periodFrom) ?> — <?= $periodTo ? Html::encode($periodTo) : 'indi' ?>.
-        <?= $baseModel ? 'Default: seçilmiş snapshot-dan bu günə.' : 'Default: keçən ayın 1-dən bu günə (snapshot yoxdur).' ?>
-        Saat boş olarsa — başlanğıc günün əvvəlindən, son gün isə tam daxil edilir. Xərclər daxil edilmə tarixinə görə götürülür.
+        Dövr: <?= Html::encode($fromDate) ?> 00:00:00 — <?= Html::encode($toDate) ?> 23:59:59.
+        Xərclər daxil edilmə tarixinə görə götürülür.
     </p>
     <div class="row">
         <div class="col-md-5">

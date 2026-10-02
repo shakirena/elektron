@@ -53,15 +53,11 @@ class MonthlySverkaController extends Controller
 
     /**
      * @param int|null $base id снимка для сравнения (по умолчанию — последний)
-     * @param string|null $from      начало периода доходов/расходов (Y-m-d)
-     * @param string|null $to        конец периода (Y-m-d; без времени — весь день включительно)
-     * @param string|null $from_time необязательное время начала (H:i)
-     * @param string|null $to_time   необязательное время конца (H:i)
+     * @param string|null $from начало периода доходов/расходов (Y-m-d, с 00:00:00)
+     * @param string|null $to   конец периода (Y-m-d, по 23:59:59 включительно)
      */
-    public function actionIndex($base = null, $from = null, $to = null, $from_time = null, $to_time = null)
+    public function actionIndex($base = null, $from = null, $to = null)
     {
-        $from = self::joinDateTime($from, $from_time);
-        $to = self::joinDateTime($to, $to_time);
         $snapshots = MonthlySverka::find()->orderBy(['datetime' => SORT_DESC])->all();
         $baseModel = null;
         if ($base) {
@@ -78,19 +74,18 @@ class MonthlySverkaController extends Controller
             $backdated = MonthlySverkaReport::backdated($baseModel);
         }
 
-        // Период для раздела «Gəlir və xərc»: явно заданный, иначе — от снимка, иначе — с 1-го числа прошлого месяца
-        $periodFrom = self::parseDate($from, false);
-        $periodTo = self::parseDate($to, true);
-        if ($periodFrom === null) {
-            $periodFrom = $baseModel ? $baseModel->datetime : date('Y-m-01 00:00:00', strtotime('first day of last month'));
-        }
-        $periodFlows = ($flows && $from === null && $to === null) ? $flows : MonthlySverkaReport::flows($periodFrom, $periodTo);
+        // Период «Gəlir və xərc» — только даты: с 00:00:00 первого дня по 23:59:59 последнего.
+        // По умолчанию: со дня снимка (или с 1-го числа прошлого месяца) по сегодня.
+        $fromDate = self::validDate($from)
+            ?: ($baseModel ? substr($baseModel->datetime, 0, 10) : date('Y-m-d', strtotime('first day of last month')));
+        $toDate = self::validDate($to) ?: date('Y-m-d');
+        $periodFlows = MonthlySverkaReport::flows($fromDate . ' 00:00:00', $toDate . ' 23:59:59');
 
         $manual = new MonthlySverka(['datetime' => date('Y-m-d H:i:s')]);
 
         return $this->render('index', [
-            'periodFrom' => $periodFrom,
-            'periodTo' => $periodTo,
+            'fromDate' => $fromDate,
+            'toDate' => $toDate,
             'periodFlows' => $periodFlows,
             'snapshots' => $snapshots,
             'baseModel' => $baseModel,
@@ -103,33 +98,13 @@ class MonthlySverkaController extends Controller
     }
 
     /**
-     * Дата из формы → 'Y-m-d H:i:s'. Для конца периода дата без времени
-     * включает весь день (граница — начало следующего дня, сравнение строгое).
-     * @return string|null
+     * @return string|null дата 'Y-m-d' или null, если значение пустое/некорректное
      */
-    private static function joinDateTime($date, $time)
+    private static function validDate($value)
     {
-        $date = trim((string) $date);
-        $time = trim((string) $time);
-        if ($date === '') {
-            return null;
-        }
-        return $time === '' ? $date : $date . ' ' . $time;
-    }
-
-    private static function parseDate($value, $isEnd)
-    {
-        $value = trim(str_replace('T', ' ', (string) $value));
-        if ($value === '') {
-            return null;
-        }
-        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-            return $isEnd ? date('Y-m-d 00:00:00', strtotime($value . ' +1 day')) : $value . ' 00:00:00';
-        }
-        if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/', $value)) {
-            return date('Y-m-d H:i:s', strtotime($value));
-        }
-        return null;
+        $value = trim((string) $value);
+        $d = \DateTime::createFromFormat('Y-m-d', $value);
+        return ($d && $d->format('Y-m-d') === $value) ? $value : null;
     }
 
     /**
