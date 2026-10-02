@@ -7,7 +7,8 @@ use Yii;
 /**
  * Расчёты для страницы «Aylıq sverka».
  *
- * Формула: Nəticə = Stok + Portfel + Kassa − Borc.
+ * Формула: Nəticə = Stok + Portfel + Kassa − Borc − müştəri artıq ödənişləri
+ * (переплаты клиентов — деньги клиентов у нас, считаются как обязательство/расход).
  * Ожидаемый Nəticə = Nəticə снимка + mənfəət − mənfəət vozvratlar − xərclər + digər mədaxil.
  * Разница между фактическим и ожидаемым — то, что не объясняется прибылью.
  *
@@ -37,9 +38,12 @@ class MonthlySverkaReport
 
     const ACTION_LABELS = ['I' => 'əlavə', 'U' => 'dəyişiklik', 'D' => 'silinmə'];
 
-    public static function netice($stok, $portfel, $kassa, $borc)
+    /**
+     * @param float $portfelMinus переплаты клиентов — отрицательное число (сумма минусовых балансов)
+     */
+    public static function netice($stok, $portfel, $kassa, $borc, $portfelMinus = 0)
     {
-        return round((float) $stok + (float) $portfel + (float) $kassa - (float) $borc, 2);
+        return round((float) $stok + (float) $portfel + (float) $kassa - (float) $borc - abs((float) $portfelMinus), 2);
     }
 
     /**
@@ -53,11 +57,21 @@ class MonthlySverkaReport
         $stok = (float) $db->createCommand('SELECT COALESCE(SUM(price*rest),0) FROM arrival WHERE received=1')->queryScalar();
         $stokDraft = (float) $db->createCommand('SELECT COALESCE(SUM(price*rest),0) FROM arrival WHERE received=0')->queryScalar();
 
-        $balances = $db->createCommand('SELECT SUM(debt) b FROM dclient GROUP BY id_client')->queryColumn();
-        $portfel = 0; $portfelMinus = 0;
-        foreach ($balances as $b) {
-            if ($b > 0) $portfel += $b; else $portfelMinus += $b;
+        $balances = $db->createCommand(
+            'SELECT t.id_client, c.fio, t.b FROM (SELECT id_client, SUM(debt) b FROM dclient GROUP BY id_client) t
+             LEFT JOIN client c ON c.id_client=t.id_client'
+        )->queryAll();
+        $portfel = 0; $portfelMinus = 0; $minusClients = [];
+        foreach ($balances as $row) {
+            $b = round((float) $row['b'], 2);
+            if ($b > 0) {
+                $portfel += $b;
+            } elseif ($b < 0) {
+                $portfelMinus += $b;
+                $minusClients[] = ['id_client' => (int) $row['id_client'], 'fio' => $row['fio'], 'balance' => $b];
+            }
         }
+        usort($minusClients, function ($a, $b) { return $a['balance'] <=> $b['balance']; });
 
         $kassaList = $db->createCommand(
             'SELECT COALESCE(k.name, \'—\') name, SUM(c.sum) sum FROM costs c LEFT JOIN kassa k ON k.id=c.id_kassa GROUP BY c.id_kassa, k.name ORDER BY c.id_kassa'
@@ -72,10 +86,11 @@ class MonthlySverkaReport
             'stok_draft' => round($stokDraft, 2),
             'portfel' => round($portfel, 2),
             'portfel_minus' => round($portfelMinus, 2),
+            'minus_clients' => $minusClients,
             'kassa' => round($kassa, 2),
             'kassa_list' => $kassaList,
             'borc' => round($borc, 2),
-            'netice' => self::netice($stok, $portfel, $kassa, $borc),
+            'netice' => self::netice($stok, $portfel, $kassa, $borc, $portfelMinus),
             'max_ids' => [
                 'max_id_arrival' => (int) $db->createCommand('SELECT MAX(id) FROM arrival')->queryScalar(),
                 'max_id_sell' => (int) $db->createCommand('SELECT MAX(id) FROM sell')->queryScalar(),
@@ -185,11 +200,11 @@ class MonthlySverkaReport
         $stockActualDelta = $now['stok'] - $base['stok'];
 
         $components = [];
-        foreach (['stok', 'portfel', 'kassa', 'borc'] as $key) {
+        foreach (['stok', 'portfel', 'portfel_minus', 'kassa', 'borc'] as $key) {
             $components[$key] = [
-                'base' => (float) $base[$key],
-                'now' => (float) $now[$key],
-                'delta' => round($now[$key] - $base[$key], 2),
+                'base' => isset($base[$key]) ? (float) $base[$key] : 0.0,
+                'now' => isset($now[$key]) ? (float) $now[$key] : 0.0,
+                'delta' => round((isset($now[$key]) ? $now[$key] : 0) - (isset($base[$key]) ? $base[$key] : 0), 2),
             ];
         }
 

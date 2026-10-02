@@ -42,6 +42,24 @@ class MonthlySverkaReportTest extends TestCase
         $this->assertEquals(529235.0, MonthlySverkaReport::netice(380950, 187686, 29417, 68818));
     }
 
+    public function testNeticeSubtractsClientOverpayments()
+    {
+        // переплаты клиентов — расход: знак входного значения не важен
+        $this->assertEquals(529235.0 - 15636.43, MonthlySverkaReport::netice(380950, 187686, 29417, 68818, -15636.43));
+        $this->assertEquals(529235.0 - 15636.43, MonthlySverkaReport::netice(380950, 187686, 29417, 68818, 15636.43));
+    }
+
+    public function testOverpaymentGrowthIsNegativeComponentDelta()
+    {
+        $base = ['stok' => 0, 'portfel' => 0, 'portfel_minus' => -100, 'kassa' => 0, 'borc' => 0, 'netice' => MonthlySverkaReport::netice(0, 0, 0, 0, -100)];
+        $now = ['stok' => 0, 'portfel' => 0, 'portfel_minus' => -150, 'kassa' => 50, 'borc' => 0, 'netice' => MonthlySverkaReport::netice(0, 0, 50, 0, -150)];
+        $c = MonthlySverkaReport::compare($base, $now, $this->flows());
+
+        // клиент переплатил 50: касса +50, переплаты −50 → итог не меняется, расхождения нет
+        $this->assertEquals(-50.0, $c['components']['portfel_minus']['delta']);
+        $this->assertEquals(0.0, $c['diff']);
+    }
+
     public function testNoDifferenceWhenChangeEqualsNetProfit()
     {
         $base = $this->state(1000, 500, 200, 300);   // 1400

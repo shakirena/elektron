@@ -17,7 +17,7 @@ $this->title = 'Aylıq sverka';
 $f = function ($v) { return number_format((float) $v, 2, '.', ' '); };
 $sign = function ($v) use ($f) { return ($v > 0 ? '+' : '') . $f($v); };
 $cls = function ($v, $tolerance = 50) { return abs($v) <= $tolerance ? 'text-success' : 'text-danger'; };
-$labels = ['stok' => 'Stok (təsdiqlənmiş mədaxil)', 'portfel' => 'Portfel (müştəri borcu)', 'kassa' => 'Kassa', 'borc' => 'Borc (verəcək)'];
+$labels = ['stok' => 'Stok (təsdiqlənmiş mədaxil)', 'portfel' => 'Portfel (müştəri borcu)', 'portfel_minus' => 'Müştəri artıq ödənişləri', 'kassa' => 'Kassa', 'borc' => 'Borc (verəcək)'];
 ?>
 <style>
     .ms-wrap{max-width:1100px;}
@@ -30,7 +30,7 @@ $labels = ['stok' => 'Stok (təsdiqlənmiş mədaxil)', 'portfel' => 'Portfel (m
 <div class="ms-wrap">
 
     <h1><?= Html::encode($this->title) ?></h1>
-    <p class="ms-muted">Nəticə = Stok + Portfel + Kassa − Borc. Gözlənilən = əvvəlki snapshot + mənfəət − vozvrat mənfəəti − xərclər + digər mədaxil.</p>
+    <p class="ms-muted">Nəticə = Stok + Portfel + Kassa − Borc − müştəri artıq ödənişləri. Gözlənilən = əvvəlki snapshot + mənfəət − vozvrat mənfəəti − xərclər + digər mədaxil.</p>
 
     <?php foreach (['success', 'error'] as $type): ?>
         <?php if (Yii::$app->session->hasFlash($type)): ?>
@@ -46,12 +46,25 @@ $labels = ['stok' => 'Stok (təsdiqlənmiş mədaxil)', 'portfel' => 'Portfel (m
                 <tr><td><?= $labels['portfel'] ?></td><td class="num"><?= $f($now['portfel']) ?></td></tr>
                 <tr><td><?= $labels['kassa'] ?></td><td class="num"><?= $f($now['kassa']) ?></td></tr>
                 <tr><td><?= $labels['borc'] ?></td><td class="num">−<?= $f($now['borc']) ?></td></tr>
+                <tr>
+                    <td><?= $labels['portfel_minus'] ?> (<?= count($now['minus_clients']) ?> müştəri, borcu mənfiyə düşüb)
+                        <div class="ms-muted">Müştərinin pulu bizdədir — xərc kimi çıxılır</div></td>
+                    <td class="num">−<?= $f(abs($now['portfel_minus'])) ?></td>
+                </tr>
                 <tr class="info"><td><b>Nəticə</b></td><td class="num ms-big"><?= $f($now['netice']) ?></td></tr>
             </table>
+            <?php if ($now['minus_clients']): ?>
+                <details style="margin-bottom:10px">
+                    <summary class="ms-muted" style="cursor:pointer">Borcu mənfi olan müştərilər</summary>
+                    <table class="table table-condensed" style="font-size:12px;max-width:420px">
+                        <?php foreach ($now['minus_clients'] as $mc): ?>
+                            <tr><td><?= Html::encode($mc['fio'] ?: ('#' . $mc['id_client'])) ?></td><td class="num"><?= $f($mc['balance']) ?></td></tr>
+                        <?php endforeach; ?>
+                    </table>
+                </details>
+            <?php endif; ?>
             <p class="ms-muted">
-                Nəticəyə daxil deyil:
-                təsdiqlənməmiş mədaxil <b><?= $f($now['stok_draft']) ?></b> (şirkət borcu yoxdur),
-                müştəri artıq ödənişləri <b><?= $f($now['portfel_minus']) ?></b>.
+                Nəticəyə daxil deyil: təsdiqlənməmiş mədaxil <b><?= $f($now['stok_draft']) ?></b> (şirkət borcu yoxdur).
             </p>
         </div>
         <div class="col-md-6">
@@ -200,7 +213,7 @@ $labels = ['stok' => 'Stok (təsdiqlənmiş mədaxil)', 'portfel' => 'Portfel (m
                 </tr>
                 <tr class="info"><td><b>Jurnal üzrə cəmi</b></td><td></td><td class="num"><b><?= $sign($audit['total_unexplained']) ?></b></td></tr>
                 <tr><td>Ümumi fərq (yuxarıda)</td><td></td><td class="num"><?= $sign($compare['diff']) ?></td></tr>
-                <tr><td class="ms-muted">Jurnalla izah olunmayan qalıq (jurnaldan əvvəlki dövr, müştəri artıq ödənişləri)</td><td></td><td class="num ms-muted"><?= $sign(round($compare['diff'] - $audit['total_unexplained'], 2)) ?></td></tr>
+                <tr><td class="ms-muted">Jurnalla izah olunmayan qalıq (jurnaldan əvvəlki dövr)</td><td></td><td class="num ms-muted"><?= $sign(round($compare['diff'] - $audit['total_unexplained'], 2)) ?></td></tr>
             </table>
 
             <?php if ($audit['events']): ?>
@@ -244,6 +257,7 @@ $labels = ['stok' => 'Stok (təsdiqlənmiş mədaxil)', 'portfel' => 'Portfel (m
         <?php foreach (['stok' => 'Stok', 'portfel' => 'Portfel', 'kassa' => 'Kassa', 'borc' => 'Borc'] as $attr => $ph): ?>
             <?= Html::input('number', "MonthlySverka[$attr]", '', ['class' => 'form-control', 'placeholder' => $ph, 'step' => '0.01', 'required' => true, 'style' => 'width:120px']) ?>
         <?php endforeach; ?>
+        <?= Html::input('number', 'MonthlySverka[portfel_minus]', '', ['class' => 'form-control', 'placeholder' => 'Artıq ödəniş', 'step' => '0.01', 'title' => 'Müştəri artıq ödənişləri (istəyə görə)', 'style' => 'width:120px']) ?>
         <?= Html::textInput('MonthlySverka[note]', '', ['class' => 'form-control', 'placeholder' => 'Qeyd', 'maxlength' => 255]) ?>
         <?= Html::submitButton('Əlavə et', ['class' => 'btn btn-default']) ?>
     <?= Html::endForm() ?>
@@ -251,7 +265,7 @@ $labels = ['stok' => 'Stok (təsdiqlənmiş mədaxil)', 'portfel' => 'Portfel (m
     <?php if ($snapshots): ?>
         <h3>Snapshot-lar</h3>
         <table class="table table-condensed table-striped">
-            <tr><th>Tarix</th><th class="num">Stok</th><th class="num">Portfel</th><th class="num">Kassa</th><th class="num">Borc</th><th class="num">Nəticə</th><th>Qeyd</th><th></th></tr>
+            <tr><th>Tarix</th><th class="num">Stok</th><th class="num">Portfel</th><th class="num">Kassa</th><th class="num">Borc</th><th class="num">Artıq ödəniş</th><th class="num">Nəticə</th><th>Qeyd</th><th></th></tr>
             <?php foreach ($snapshots as $s): ?>
                 <tr>
                     <td><?= Html::encode($s->datetime) ?><?= $s->is_manual ? ' <span class="label label-default">əl ilə</span>' : '' ?></td>
@@ -259,6 +273,7 @@ $labels = ['stok' => 'Stok (təsdiqlənmiş mədaxil)', 'portfel' => 'Portfel (m
                     <td class="num"><?= $f($s->portfel) ?></td>
                     <td class="num"><?= $f($s->kassa) ?></td>
                     <td class="num"><?= $f($s->borc) ?></td>
+                    <td class="num"><?= $f(-abs($s->portfel_minus)) ?></td>
                     <td class="num"><b><?= $f($s->netice) ?></b></td>
                     <td><?= Html::encode($s->note) ?></td>
                     <td>

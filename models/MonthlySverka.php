@@ -15,7 +15,7 @@ use yii\db\ActiveRecord;
  * @property float $portfel_minus Переплаты клиентов (отрицательные балансы)
  * @property float $kassa         Все кассы
  * @property float $borc          Долг поставщикам
- * @property float $netice        stok + portfel + kassa − borc
+ * @property float $netice        stok + portfel + kassa − borc − |portfel_minus|
  * @property int $is_manual
  * @property string $note
  * @property int $id_user
@@ -64,7 +64,9 @@ class MonthlySverka extends ActiveRecord
         if (!parent::beforeSave($insert)) {
             return false;
         }
-        $this->netice = MonthlySverkaReport::netice($this->stok, $this->portfel, $this->kassa, $this->borc);
+        // Переплаты всегда храним отрицательными — в ручной форме можно ввести и без минуса
+        $this->portfel_minus = -abs((float) $this->portfel_minus);
+        $this->netice = MonthlySverkaReport::netice($this->stok, $this->portfel, $this->kassa, $this->borc, $this->portfel_minus);
         return true;
     }
 
