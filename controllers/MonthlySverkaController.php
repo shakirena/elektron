@@ -53,8 +53,10 @@ class MonthlySverkaController extends Controller
 
     /**
      * @param int|null $base id снимка для сравнения (по умолчанию — последний)
+     * @param string|null $from начало периода доходов/расходов (Y-m-d или Y-m-dTH:i)
+     * @param string|null $to   конец периода включительно (Y-m-d или Y-m-dTH:i)
      */
-    public function actionIndex($base = null)
+    public function actionIndex($base = null, $from = null, $to = null)
     {
         $snapshots = MonthlySverka::find()->orderBy(['datetime' => SORT_DESC])->all();
         $baseModel = null;
@@ -72,9 +74,20 @@ class MonthlySverkaController extends Controller
             $backdated = MonthlySverkaReport::backdated($baseModel);
         }
 
+        // Период для раздела «Gəlir və xərc»: явно заданный, иначе — от снимка, иначе — с 1-го числа прошлого месяца
+        $periodFrom = self::parseDate($from, false);
+        $periodTo = self::parseDate($to, true);
+        if ($periodFrom === null) {
+            $periodFrom = $baseModel ? $baseModel->datetime : date('Y-m-01 00:00:00', strtotime('first day of last month'));
+        }
+        $periodFlows = ($flows && $from === null && $to === null) ? $flows : MonthlySverkaReport::flows($periodFrom, $periodTo);
+
         $manual = new MonthlySverka(['datetime' => date('Y-m-d H:i:s')]);
 
         return $this->render('index', [
+            'periodFrom' => $periodFrom,
+            'periodTo' => $periodTo,
+            'periodFlows' => $periodFlows,
             'snapshots' => $snapshots,
             'baseModel' => $baseModel,
             'now' => $now,
@@ -83,6 +96,26 @@ class MonthlySverkaController extends Controller
             'backdated' => $backdated,
             'manual' => $manual,
         ]);
+    }
+
+    /**
+     * Дата из формы → 'Y-m-d H:i:s'. Для конца периода дата без времени
+     * включает весь день (граница — начало следующего дня, сравнение строгое).
+     * @return string|null
+     */
+    private static function parseDate($value, $isEnd)
+    {
+        $value = trim(str_replace('T', ' ', (string) $value));
+        if ($value === '') {
+            return null;
+        }
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return $isEnd ? date('Y-m-d 00:00:00', strtotime($value . ' +1 day')) : $value . ' 00:00:00';
+        }
+        if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/', $value)) {
+            return date('Y-m-d H:i:s', strtotime($value));
+        }
+        return null;
     }
 
     /**

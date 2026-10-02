@@ -71,29 +71,30 @@ class MonthlySverkaReport
     }
 
     /**
-     * Движения с момента $since (по датам документов).
+     * Движения за период [$since, $until) по датам документов.
      * @param string $since Y-m-d H:i:s
+     * @param string|null $until Y-m-d H:i:s, по умолчанию — без ограничения (до сейчас)
      * @return array
      */
-    public static function flows($since)
+    public static function flows($since, $until = null)
     {
         $db = Yii::$app->db;
-        $p = [':since' => $since];
+        $p = [':since' => $since, ':until' => $until ?: '9999-12-31 23:59:59'];
 
         $sales = $db->createCommand(
-            'SELECT COALESCE(SUM(sum),0) revenue, COALESCE(SUM(earnings),0) profit, COALESCE(SUM(price_ar*quantity),0) cogs FROM sell WHERE datetime>=:since', $p
+            'SELECT COALESCE(SUM(sum),0) revenue, COALESCE(SUM(earnings),0) profit, COALESCE(SUM(price_ar*quantity),0) cogs FROM sell WHERE datetime>=:since AND datetime<:until', $p
         )->queryOne();
 
         // Возвраты клиентов: себестоимость — по последней проведённой партии (так же, как в отчёте Satışlar).
         $returns = $db->createCommand(
             'SELECT COALESCE(SUM(r.price*r.quantity),0) sum,
                     COALESCE(SUM(r.quantity*COALESCE((SELECT a.price FROM arrival a WHERE a.id_product=r.id_product AND a.received=1 ORDER BY a.datetime DESC LIMIT 1),0)),0) cost
-             FROM returnp r WHERE r.data>=:since', $p
+             FROM returnp r WHERE r.data>=:since AND r.data<:until', $p
         )->queryOne();
 
         $costRows = $db->createCommand(
             'SELECT c.id_type, t.name, t.type, SUM(c.sum) sum, COUNT(*) n FROM costs c JOIN type_costs t ON t.id=c.id_type
-             WHERE c.datetime>=:since GROUP BY c.id_type, t.name, t.type ORDER BY c.id_type', $p
+             WHERE c.datetime>=:since AND c.datetime<:until GROUP BY c.id_type, t.name, t.type ORDER BY c.id_type', $p
         )->queryAll();
         $expenses = 0; $expenseList = []; $otherIncome = 0; $incomeList = [];
         foreach ($costRows as $row) {
@@ -107,8 +108,24 @@ class MonthlySverkaReport
             }
         }
 
-        $arrivals = (float) $db->createCommand('SELECT COALESCE(SUM(price*quantity),0) FROM arrival WHERE received=1 AND datetime>=:since', $p)->queryScalar();
-        $supplierReturns = (float) $db->createCommand('SELECT COALESCE(SUM(price*quantity),0) FROM return_arrival WHERE date>=:since', $p)->queryScalar();
+        // Сами записи расходов/прочих поступлений — чтобы по примечанию было видно, за какой месяц расход
+        $itemRows = $db->createCommand(
+            'SELECT c.datetime, c.id_type, t.name, t.type, c.sum, c.note, k.name kassa FROM costs c
+             JOIN type_costs t ON t.id=c.id_type LEFT JOIN kassa k ON k.id=c.id_kassa
+             WHERE c.datetime>=:since AND c.datetime<:until ORDER BY c.datetime', $p
+        )->queryAll();
+        $expenseItems = []; $incomeItems = [];
+        foreach ($itemRows as $row) {
+            $id = (int) $row['id_type'];
+            if ((int) $row['type'] === 0 && !in_array($id, self::NOT_EXPENSE_TYPES, true)) {
+                $expenseItems[] = $row;
+            } elseif ((int) $row['type'] === 1 && !in_array($id, self::NOT_OTHER_INCOME_TYPES, true)) {
+                $incomeItems[] = $row;
+            }
+        }
+
+        $arrivals = (float) $db->createCommand('SELECT COALESCE(SUM(price*quantity),0) FROM arrival WHERE received=1 AND datetime>=:since AND datetime<:until', $p)->queryScalar();
+        $supplierReturns = (float) $db->createCommand('SELECT COALESCE(SUM(price*quantity),0) FROM return_arrival WHERE date>=:since AND date<:until', $p)->queryScalar();
 
         return [
             'revenue' => round($sales['revenue'], 2),
@@ -121,6 +138,8 @@ class MonthlySverkaReport
             'expense_list' => $expenseList,
             'other_income' => round($otherIncome, 2),
             'income_list' => $incomeList,
+            'expense_items' => $expenseItems,
+            'income_items' => $incomeItems,
             'arrivals' => round($arrivals, 2),
             'supplier_returns' => round($supplierReturns, 2),
         ];

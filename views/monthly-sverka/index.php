@@ -69,6 +69,56 @@ $labels = ['stok' => 'Stok (təsdiqlənmiş mədaxil)', 'portfel' => 'Portfel (m
         </div>
     </div>
 
+    <h3>Gəlir və xərc</h3>
+    <?= Html::beginForm(['index'], 'get', ['class' => 'form-inline', 'style' => 'margin-bottom:12px']) ?>
+        <?php if ($baseModel): ?><?= Html::hiddenInput('base', $baseModel->id) ?><?php endif; ?>
+        <?= Html::input('datetime-local', 'from', date('Y-m-d\TH:i', strtotime($periodFrom)), ['class' => 'form-control']) ?>
+        —
+        <?= Html::input('datetime-local', 'to', $periodTo ? date('Y-m-d\TH:i', strtotime($periodTo)) : '', ['class' => 'form-control']) ?>
+        <?= Html::submitButton('Göstər', ['class' => 'btn btn-default']) ?>
+        <a href="<?= Url::to(['index'] + ($baseModel ? ['base' => $baseModel->id] : [])) ?>" class="btn btn-link">sıfırla</a>
+    <?= Html::endForm() ?>
+    <p class="ms-muted">
+        Dövr: <?= Html::encode($periodFrom) ?> — <?= $periodTo ? Html::encode($periodTo) : 'indi' ?>.
+        <?= $baseModel ? 'Default: seçilmiş snapshot-dan bu günə.' : 'Default: keçən ayın 1-dən bu günə (snapshot yoxdur).' ?>
+        Xərclər daxil edilmə tarixinə görə götürülür.
+    </p>
+    <div class="row">
+        <div class="col-md-5">
+            <table class="table table-condensed table-bordered">
+                <tr><td>Satış dövriyyəsi</td><td class="num"><?= $f($periodFlows['revenue']) ?></td></tr>
+                <tr><td><b>Satışdan mənfəət</b></td><td class="num"><b><?= $f($periodFlows['profit']) ?></b></td></tr>
+                <tr><td>Vozvrat mənfəəti (<?= $f($periodFlows['returns_sum']) ?> − maya <?= $f($periodFlows['returns_cost']) ?>)</td><td class="num">−<?= $f($periodFlows['returns_margin']) ?></td></tr>
+                <?php foreach ($periodFlows['expense_list'] as $e): ?>
+                    <tr><td>Xərc: <?= Html::encode($e['name']) ?> (<?= (int) $e['n'] ?>)</td><td class="num">−<?= $f(-$e['sum']) ?></td></tr>
+                <?php endforeach; ?>
+                <tr><td><b>Xərclər cəmi</b></td><td class="num"><b>−<?= $f($periodFlows['expenses']) ?></b></td></tr>
+                <?php foreach ($periodFlows['income_list'] as $e): ?>
+                    <tr><td>Digər mədaxil: <?= Html::encode($e['name']) ?> (<?= (int) $e['n'] ?>)</td><td class="num">+<?= $f($e['sum']) ?></td></tr>
+                <?php endforeach; ?>
+                <?php $periodNet = $periodFlows['profit'] - $periodFlows['returns_margin'] - $periodFlows['expenses'] + $periodFlows['other_income']; ?>
+                <tr class="info"><td><b>Xalis mənfəət</b></td><td class="num ms-big"><?= $sign($periodNet) ?></td></tr>
+            </table>
+        </div>
+        <div class="col-md-7">
+            <table class="table table-condensed table-striped">
+                <tr><th>Tarix</th><th>Növ</th><th>Qeyd</th><th>Kassa</th><th class="num">Məbləğ</th></tr>
+                <?php foreach (array_merge($periodFlows['expense_items'], $periodFlows['income_items']) as $it): ?>
+                    <tr>
+                        <td style="white-space:nowrap"><?= Html::encode(substr($it['datetime'], 0, 16)) ?></td>
+                        <td><?= Html::encode($it['name']) ?></td>
+                        <td><?= Html::encode($it['note']) ?></td>
+                        <td><?= Html::encode($it['kassa']) ?></td>
+                        <td class="num"><?= $sign($it['sum']) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                <?php if (!$periodFlows['expense_items'] && !$periodFlows['income_items']): ?>
+                    <tr><td colspan="5" class="ms-muted">Bu dövrdə xərc yoxdur.</td></tr>
+                <?php endif; ?>
+            </table>
+        </div>
+    </div>
+
     <h3>Müqayisə</h3>
     <?php if (!$snapshots): ?>
         <div class="alert alert-info">Hələ snapshot yoxdur. Cari vəziyyəti yadda saxlayın və ya əvvəlki ayın rəqəmlərini aşağıda əl ilə daxil edin.</div>
