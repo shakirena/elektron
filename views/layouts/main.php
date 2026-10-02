@@ -128,7 +128,8 @@ $showDesignToggle = $sellAction === 'index' || $sellAction === 'index-v2';
 					['label' => 'Xərclər həsabatı', 'url' => ['/costs/index']],
 					['label' => 'Medaxil həsabatı', 'url' => ['/costs/index2']],
 					['label' => 'Kassa hesabatı', 'url' => ['/costs/kassa']], 
-					['label' => 'Günün sonu', 'url' => ['/move/itog']],					
+					['label' => 'Günün sonu', 'url' => ['/move/itog']],
+					['label' => 'Aylıq sverka', 'url' => ['/monthly-sverka/index'], 'visible' => (bool) $admin],
 					
                 ]
             ] : '',
